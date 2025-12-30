@@ -2,7 +2,7 @@
 import { auth } from './firebase-config.js';
 
 // আপডেট করা ভার্সন (12.7.0)
-import { GoogleAuthProvider, signInWithPopup, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-auth.js";
+import { GoogleAuthProvider, signInWithRedirect, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-auth.js";
 
 const loginBtn = document.getElementById('google-login-btn');
 
@@ -11,16 +11,7 @@ if (loginBtn) {
     loginBtn.addEventListener('click', () => {
         const provider = new GoogleAuthProvider();
         
-        signInWithPopup(auth, provider)
-            .then((result) => {
-                console.log("Logged in:", result.user);
-                // সফল হলে ড্যাশবোর্ডে পাঠাও
-                window.location.href = "dashboard.html";
-            })
-            .catch((error) => {
-                console.error("Login Error:", error);
-                alert("Login Failed: " + error.message);
-            });
+        signInWithRedirect(auth, provider);
     });
 }
 
