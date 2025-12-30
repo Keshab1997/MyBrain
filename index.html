@@ -70,37 +70,35 @@
     <script src="js/search.js"></script> 
     <script src="js/footer.js"></script>
 
-    <!-- [গুরুত্বপূর্ণ] শেয়ার করা লিংক হ্যান্ডেল করার স্ক্রিপ্ট -->
+        <!-- শেয়ার করা লিংক হ্যান্ডেল করার স্ক্রিপ্ট (আপডেটেড) -->
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             const noteInput = document.getElementById('noteInput');
-            
-            // ইনপুট বক্স না পেলে কোড থামিয়ে দেবে
             if (!noteInput) return;
 
-            // ১. সরাসরি URL থেকে চেক করা (যদি ইউজার অলরেডি লগইন থাকে)
-            // অ্যান্ড্রয়েড অ্যাপ পাঠাবে: ?note=https://...
+            // ১. URL থেকে লিংক নেওয়া
             const urlParams = new URLSearchParams(window.location.search);
             let sharedNote = urlParams.get('note');
 
-            // ২. যদি URL এ না থাকে, তাহলে SessionStorage চেক করা 
-            // (যদি ইউজার লগইন পেজ হয়ে আসে)
+            // ২. SessionStorage থেকে নেওয়া
             if (!sharedNote) {
                 sharedNote = sessionStorage.getItem('pendingNote');
-                
-                // একবার নেওয়ার পর মেমোরি ক্লিয়ার করে দেব, যাতে রিফ্রেশ করলে আবার না আসে
-                if (sharedNote) {
-                    sessionStorage.removeItem('pendingNote');
-                }
+                if (sharedNote) sessionStorage.removeItem('pendingNote');
             }
 
-            // ৩. লিংক পাওয়া গেলে ইনপুট বক্সে বসানো
+            // ৩. লিংক পাওয়া গেলে ইনপুট বক্সে বসানো এবং ইভেন্ট ট্রিগার করা
             if (sharedNote) {
-                noteInput.value = sharedNote; // লিংক বসালাম
-                noteInput.focus();            // কার্সর ইনপুটে নিয়ে গেলাম
+                noteInput.value = sharedNote; 
+                noteInput.focus(); 
                 
-                // আপনি চাইলে অটোমেটিক সেভ করতে পারেন, নিচের লাইনটি আন-কমেন্ট করে:
-                // document.getElementById('saveBtn').click();
+                // [এই লাইনটি নতুন] 
+                // এটি সিস্টেমকে জানাবে যে ইনপুট বক্সে কিছু লেখা হয়েছে, 
+                // যাতে তোমার থাম্বনেইল জেনারেটর কাজ শুরু করে।
+                noteInput.dispatchEvent(new Event('input', { bubbles: true }));
+                noteInput.dispatchEvent(new Event('change', { bubbles: true }));
+
+                // তুমি চাইলে অটো সেভ বাটন ক্লিক করাতে পারো (যদি সব ঠিক থাকে)
+                // setTimeout(() => document.getElementById('saveBtn').click(), 1000);
             }
         });
     </script>
