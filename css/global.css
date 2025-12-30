@@ -1,0 +1,218 @@
+/* css/global.css */
+
+/* ১. বেসিক সেটআপ */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+body {
+    background-color: #f4f6f8; /* হালকা ধূসর ব্যাকগ্রাউন্ড */
+    color: #333;
+    line-height: 1.6;
+}
+
+/* ২. কন্টেইনার (পেজের মাঝখানে রাখার জন্য) */
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+/* ৩. ফিক্সড হেডার / ন্যাভিগেশন বার ডিজাইন (Navbar) */
+.navbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px 20px;
+    background-color: #ffffff;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+    position: sticky; /* স্ক্রল করলেও উপরে লেগে থাকবে */
+    top: 0;
+    z-index: 1000;
+}
+
+.logo-section {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 1.2rem;
+    font-weight: bold;
+    color: #2c3e50;
+}
+
+.nav-right {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+}
+
+.nav-links {
+    display: flex;
+    gap: 20px;
+}
+
+.nav-item {
+    text-decoration: none;
+    color: #666;
+    font-weight: 500;
+    transition: color 0.3s;
+}
+
+.nav-item:hover, .nav-item.active {
+    color: #007bff;
+    font-weight: bold;
+}
+
+/* লগআউট বাটন */
+.btn-logout {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    background: #fff0f0;
+    border: 1px solid #ffcccc;
+    color: #d63031;
+    padding: 8px 15px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: 0.3s;
+}
+
+.btn-logout:hover {
+    background: #ffe5e5;
+}
+
+/* ৪. মোবাইল রেসপনসিভ (মোবাইলে যাতে ভেঙে না যায়) */
+@media (max-width: 600px) {
+    .navbar {
+        padding: 10px 15px;
+    }
+    .logo-text {
+        display: none; /* ছোট স্ক্রিনে নাম লুকাবে, শুধু লোগো থাকবে */
+    }
+    .nav-links {
+        gap: 15px;
+    }
+    .nav-item {
+        font-size: 14px;
+    }
+    .btn-logout {
+        padding: 6px 10px;
+        font-size: 12px;
+    }
+}
+/* css/style-profile.css - প্রোফাইল কার্ড ডিজাইন */
+
+.profile-widget {
+    background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+    border-radius: 12px;
+    padding: 20px;
+    margin: 20px auto; /* মাঝখানে রাখার জন্য */
+    max-width: 960px; /* আপনার কন্টেইনারের সাথে মিল রেখে */
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+    border: 1px solid #e2e8f0;
+    position: relative;
+    overflow: hidden;
+}
+
+/* বাম পাশে রঙিন বর্ডার */
+.profile-widget::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    height: 100%;
+    width: 5px;
+    background: #3b82f6; /* নীল স্ট্রাইপ */
+}
+
+/* প্রোফাইল ছবি */
+.profile-img-box {
+    position: relative;
+}
+
+.profile-avatar {
+    width: 70px;
+    height: 70px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 3px solid #fff;
+    box-shadow: 0 3px 8px rgba(0,0,0,0.15);
+}
+
+/* তথ্যের সেকশন */
+.profile-info {
+    flex-grow: 1;
+}
+
+.greeting-text {
+    font-size: 14px;
+    color: #64748b;
+    font-weight: 500;
+    margin-bottom: 2px;
+}
+
+.user-name {
+    font-size: 22px;
+    font-weight: 700;
+    color: #1e293b;
+    margin: 0;
+}
+
+.user-email {
+    font-size: 13px;
+    color: #94a3b8;
+    margin-top: 3px;
+}
+
+/* সময় এবং তারিখ সেকশন (ডান পাশে) */
+.time-widget {
+    text-align: right;
+    background: #fff;
+    padding: 10px 15px;
+    border-radius: 8px;
+    border: 1px solid #f1f5f9;
+}
+
+.current-time {
+    font-size: 24px;
+    font-weight: bold;
+    color: #3b82f6;
+    font-family: 'Courier New', monospace; /* ডিজিটাল ঘড়ির লুক */
+    line-height: 1;
+}
+
+.current-date {
+    font-size: 12px;
+    color: #64748b;
+    margin-top: 5px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+/* মোবাইল রেসপন্সিভ */
+@media (max-width: 600px) {
+    .profile-widget {
+        flex-direction: column;
+        text-align: center;
+        gap: 15px;
+        padding: 20px 15px;
+    }
+    
+    .time-widget {
+        text-align: center;
+        width: 100%;
+        box-sizing: border-box;
+    }
+    
+    .profile-widget::before {
+        width: 100%;
+        height: 4px; /* মোবাইলে বর্ডার উপরে চলে যাবে */
+    }
+}

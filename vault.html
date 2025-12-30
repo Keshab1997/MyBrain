@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MyBrain Vault - Secure Password Manager</title>
+    
+    <!-- CSS লিংক -->
+    <link rel="stylesheet" href="css/global.css">
+    <link rel="stylesheet" href="css/style-vault.css"> 
+    <link rel="stylesheet" href="css/footer.css">
+    
+</head>
+<body>
+
+<!-- ১. নেভিগেশন বার (Navbar) -->
+<nav class="navbar">
+    <div class="logo-section">
+        <span class="logo-icon">🔐</span>
+        <span class="logo-text">MyVault</span>
+    </div>
+    
+    <div class="nav-right">
+        <div class="nav-links">
+            <a href="dashboard.html" class="nav-item">Notes</a>
+            <a href="#" class="nav-item active">Vault</a>
+        </div>
+        <button id="logout-btn" class="btn-logout">
+            <img src="https://img.icons8.com/ios-glyphs/30/fa314a/exit.png" alt="Logout" style="width:16px; margin-right:5px;">
+            Logout
+        </button>
+    </div>
+</nav>
+        <!-- প্রোফাইল সেকশন (JS দিয়ে লোড হবে) -->
+        <div id="profile-widget-area"></div>
+    
+        
+        <!-- ২. সিকিউর ইনপুট সেকশন (পাসওয়ার্ড সেভ করার ফর্ম) -->
+        <div class="vault-input-area">
+            <h3>Add New Secret</h3>
+            
+            <!-- স্ট্যাটাস মেসেজ (JS থেকে আপডেট হবে) -->
+            <p id="vaultStatus" style="display:none; text-align: center; margin-bottom: 10px; font-weight: bold;"></p>
+
+            <div class="vault-form">
+                <input type="text" id="siteName" placeholder="Website Name (e.g. Facebook)" class="vault-input">
+                <input type="text" id="username" placeholder="Username / Email" class="vault-input">
+                
+                <div class="password-group" style="position: relative;">
+                    <input type="password" id="password" placeholder="Password" class="vault-input" style="width: 100%; padding-right: 40px;">
+                    <!-- চোখের আইকন -->
+                    <button id="togglePass" class="icon-btn-small" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); border: none; background: transparent; cursor: pointer;">👁️</button>
+                </div>
+
+                <button id="saveSecretBtn" class="btn btn-primary btn-full" style="cursor: pointer; margin-top: 15px;">
+                    🔒 Encrypt & Save
+                </button>
+            </div>
+        </div>
+        <div class="container">
+        <!-- Import / Export Toolbar Box -->
+<div class="vault-toolbar">
+    <div class="toolbar-title">
+        <span>⚙️ Manage Vault</span>
+    </div>
+    
+    <div class="toolbar-actions">
+        <!-- Hidden Input for File -->
+        <input type="file" id="csvInput" accept=".csv" style="display: none;">
+        
+        <!-- Import Button -->
+        <button onclick="document.getElementById('csvInput').click()" class="btn-secondary">
+            <span class="btn-icon">📥</span> Import (CSV)
+        </button>
+        
+        <!-- Export Button -->
+        <button id="exportBtn" class="btn-secondary">
+            <span class="btn-icon">📤</span> Export
+        </button>
+    </div>
+</div>
+
+        <!-- ৩. সেভ করা পাসওয়ার্ডের লিস্ট -->
+        <div class="vault-list-container">
+            <h3 style="text-align: center; margin-top: 30px;">Your Secure Vault</h3>
+            
+            <!-- এই ID 'vault-grid' জাভাস্ক্রিপ্টের জন্য খুবই গুরুত্বপূর্ণ -->
+            <div id="vault-grid" class="vault-grid">
+                <!-- লোডিং বা খালি অবস্থার টেক্সট -->
+                <p style="text-align:center; color:#888; margin-top: 20px;">Loading secrets form secure cloud...</p>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- ফুটার -->
+    <div id="app-footer"></div>
+
+    <!-- স্ক্রিপ্ট সমূহ -->
+    
+    <!-- ১. PapaParse: CSV Import/Export এর জন্য (এটি আপনার মিসিং ছিল) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
+
+    <!-- ২. CryptoJS: পাসওয়ার্ড এনক্রিপ্ট করার জন্য -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+    
+    <!-- ৩. Firebase এবং Vault Logic -->
+    <script type="module" src="js/firebase-config.js"></script>
+    <script type="module" src="js/vault.js"></script>
+    <!-- প্রোফাইল এবং সময় দেখানোর স্ক্রিপ্ট -->
+<script type="module" src="js/profile-manager.js"></script>
+    
+    <!-- ৪. ফুটার -->
+    <script src="js/footer.js"></script>
+
+</body>
+</html>

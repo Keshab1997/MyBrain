@@ -1,0 +1,18 @@
+/* css/footer.css */
+.main-footer {
+    background-color: #f4f4f4;
+    padding: 20px 0;
+    margin-top: 50px;
+    border-top: 1px solid #ddd;
+    text-align: center;
+}
+.footer-links {
+    list-style: none;
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+    margin-top: 10px;
+}
+.footer-links a:hover {
+    color: var(--accent-color);
+}

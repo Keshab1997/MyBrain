@@ -1,0 +1,362 @@
+/* css/style-dash.css - FINAL UPDATED VERSION */
+
+/* --------------------------------------------------
+   ১. ন্যাপবার (Navbar) - Glassmorphism Style
+   -------------------------------------------------- */
+.navbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.8rem 5%;
+    background: rgba(255, 255, 255, 0.95); /* হালকা স্বচ্ছ */
+    backdrop-filter: blur(10px); /* ব্লার এফেক্ট */
+    border-bottom: 1px solid rgba(0,0,0,0.05);
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+}
+
+.logo-section {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 1.4rem;
+    font-weight: 800;
+    color: #4F46E5; /* ব্র্যান্ড কালার */
+}
+
+.nav-right {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+}
+
+/* লিংকগুলোর ডিজাইন */
+.nav-links {
+    display: flex;
+    gap: 15px; /* লিংকগুলোর মাঝখানের গ্যাপ */
+}
+
+.nav-item {
+    text-decoration: none;
+    font-weight: 600;
+    color: #6b7280;
+    font-size: 16px;
+    transition: color 0.3s;
+}
+
+.nav-item:hover {
+    color: #111;
+}
+
+.nav-item.active {
+    color: #4F46E5; /* একটিভ কালার */
+}
+
+/* লগআউট বাটন */
+.btn-logout {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 8px 16px;
+    background: #fff1f2;
+    color: #e11d48;
+    border: 1px solid #ffe4e6;
+    border-radius: 30px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: 0.3s;
+}
+
+.btn-logout:hover {
+    background: #ffe5e5;
+}
+
+/* --------------------------------------------------
+   ২. ইনপুট এরিয়া (Input Section)
+   -------------------------------------------------- */
+.input-area {
+    max-width: 700px;
+    margin: 2rem auto; /* পেজের মাঝখানে */
+    background: white;
+    padding: 1.5rem;
+    border-radius: 16px;
+    box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.08); /* সুন্দর শ্যাডো */
+    border: 1px solid rgba(0,0,0,0.02);
+}
+
+#noteInput {
+    width: 100%;
+    min-height: 60px;
+    border: none;
+    font-size: 1.1rem;
+    resize: none;
+    outline: none;
+    font-family: inherit;
+    color: #333;
+    margin-bottom: 15px;
+}
+
+#noteInput::placeholder {
+    color: #9ca3af;
+}
+
+.input-actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-top: 1px solid #f3f4f6;
+    padding-top: 15px;
+}
+
+/* বাটন ডিজাইন */
+.icon-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-weight: 600;
+    color: #6b7280;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 8px 12px;
+    border-radius: 8px;
+    transition: 0.2s;
+}
+
+.icon-btn:hover {
+    background-color: #f3f4f6;
+    color: #111;
+}
+
+.btn-primary {
+    background-color: #4F46E5;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.btn-primary:hover {
+    background-color: #4338ca;
+}
+
+/* --------------------------------------------------
+   ৩. গ্রিড লেআউট (Grid System)
+   -------------------------------------------------- */
+/* কন্টেইনার ফিক্স */
+.container {
+    padding: 0 4%;
+    max-width: 1600px;
+    margin: 0 auto;
+    padding-bottom: 80px;
+}
+
+/* কার্ড গ্রিড */
+.masonry-grid {
+    display: grid;
+    /* কার্ডের সাইজ মিনিমাম ২৮০ পিক্সেল হবে, জায়গা থাকলে পাশাপাশি বসবে */
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); 
+    gap: 1.5rem;
+    align-items: start;
+    margin-top: 30px;
+}
+
+/* --------------------------------------------------
+   ৪. কার্ড ডিজাইন (Card Design)
+   -------------------------------------------------- */
+/* JS ফাইলে যদি ক্লাস নাম 'brain-card' বা 'card' যাই থাকুক, এটা কাজ করবে */
+.brain-card, .card {
+    background: white;
+    border-radius: 16px;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+    border: 1px solid rgba(0,0,0,0.05);
+    overflow: hidden;
+    transition: transform 0.2s, box-shadow 0.2s;
+    display: flex;
+    flex-direction: column;
+}
+
+.brain-card:hover, .card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+}
+
+/* সিম্পল টেক্সট নোট */
+.note-text {
+    padding: 1.2rem;
+    font-size: 0.95rem;
+    color: #374151;
+    line-height: 1.6;
+    white-space: pre-wrap;
+}
+
+/* ইমেজ আপলোড হলে */
+.uploaded-image {
+    width: 100%;
+    height: auto;
+    display: block;
+    border-bottom: 1px solid #eee;
+}
+
+/* --------------------------------------------------
+   ৫. লিংক প্রিভিউ কার্ড (Link Preview)
+   -------------------------------------------------- */
+.link-preview-box {
+    text-decoration: none;
+    color: inherit;
+    display: block;
+    background: #fafafa;
+    transition: background 0.2s;
+}
+
+.link-preview-box:hover {
+    background: #f3f4f6;
+}
+
+/* ইমেজের হাইট ফিক্সড রাখা হয়েছে যাতে গ্রিড ভেঙে না যায় */
+.preview-img {
+    width: 100%;
+    height: 180px !important;
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    background-color: #e5e7eb;
+}
+
+.preview-info {
+    padding: 15px;
+}
+
+.preview-title {
+    font-size: 1rem;
+    font-weight: 700;
+    margin-bottom: 6px;
+    color: #111;
+    /* ২ লাইনের বেশি হলে ডট ডট (...) দেখাবে */
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.preview-desc {
+    font-size: 0.85rem;
+    color: #666;
+    /* ৩ লাইনের বেশি হলে ডট ডট (...) দেখাবে */
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    line-height: 1.4;
+}
+
+.preview-site {
+    display: block;
+    margin-top: 10px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #9ca3af;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* --------------------------------------------------
+   ৬. ফুটার এবং ডিলিট বাটন (Card Footer)
+   -------------------------------------------------- */
+.card-footer {
+    padding: 10px 15px;
+    background: #fff;
+    border-top: 1px solid #f3f4f6;
+    display: flex;
+    justify-content: flex-end; /* বাটন ডানদিকে থাকবে */
+}
+
+.delete-btn {
+    background: transparent;
+    border: none;
+    padding: 6px;
+    border-radius: 50%;
+    cursor: pointer;
+    transition: 0.2s;
+    opacity: 0.6;
+}
+
+.delete-btn:hover {
+    background-color: #fee2e2;
+    opacity: 1;
+}
+
+.delete-icon {
+    width: 18px;
+    height: 18px;
+    filter: invert(33%) sepia(94%) saturate(4025%) hue-rotate(334deg) brightness(90%) contrast(90%); /* লাল রঙের আইকন */
+}
+
+/* --------------------------------------------------
+   ৭. মোবাইল রেসপনসিভ (Mobile Tweaks)
+   -------------------------------------------------- */
+@media (max-width: 600px) {
+    .navbar {
+        padding: 0.8rem 1rem;
+    }
+    
+    .nav-links {
+        gap: 10px;
+    }
+    
+    .logo-text {
+        display: none; /* ছোট স্ক্রিনে নাম লুকাবে */
+    }
+
+    .input-area {
+        margin: 1rem;
+        padding: 1rem;
+    }
+
+    .masonry-grid {
+        grid-template-columns: 1fr; /* মোবাইলে এক কলাম */
+        padding: 0 10px;
+    }
+}
+/* ----------- Search Bar Design ----------- */
+.search-wrapper {
+    max-width: 700px;
+    margin: 20px auto 10px auto; /* উপরে ২০px, নিচে ১০px গ্যাপ */
+    position: relative;
+}
+
+#searchInput {
+    width: 100%;
+    padding: 12px 20px;
+    border-radius: 50px; /* পিল শেপ */
+    border: 1px solid #e5e7eb;
+    background: #ffffff;
+    font-size: 16px;
+    outline: none;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.02);
+    transition: all 0.3s ease;
+    text-align: center; /* লেখা মাঝখানে দেখাবে */
+}
+
+#searchInput:focus {
+    border-color: #4F46E5;
+    box-shadow: 0 5px 15px rgba(79, 70, 229, 0.15);
+    background: #fff;
+    transform: scale(1.01); /* ফোকাস করলে একটু বড় হবে */
+}
+
+#searchInput::placeholder {
+    color: #9ca3af;
+}
+/* ----------- Search Highlight ----------- */
+mark.highlight {
+    background-color: #ffd700; /* উজ্জ্বল হলুদ */
+    color: #000;
+    padding: 0 2px;
+    border-radius: 2px;
+    font-weight: bold;
+}
