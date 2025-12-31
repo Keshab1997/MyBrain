@@ -69,34 +69,5 @@
     <script src="js/search.js"></script> 
     
     <script src="js/footer.js"></script>
-
-    <!-- [নতুন সংযোজন] অ্যাপ থেকে শেয়ার করা লিংক রিসিভ করার স্ক্রিপ্ট -->
-    <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            // URL থেকে প্যারামিটার খোঁজা
-            const urlParams = new URLSearchParams(window.location.search);
-            const sharedNote = urlParams.get('note'); // 'note' নামটি এন্ড্রয়েড কোডের সাথে মিল থাকতে হবে
-
-            // যদি কোনো লিংক পাওয়া যায়
-            if (sharedNote) {
-                const noteInput = document.getElementById('noteInput');
-                if (noteInput) {
-                    // 1. ইনপুট বক্সে লিংকটি বসিয়ে দেওয়া
-                    noteInput.value = sharedNote;
-                    
-                    // 2. ফোকাস করা যাতে ইউজার দেখতে পায়
-                    noteInput.focus();
-
-                    // তুমি যদি চাও লিংকটি অটোমেটিক সেভ হয়ে যাক (বাটনে ক্লিক ছাড়া),
-                    // তাহলে নিচের ২ লাইনের কমেন্ট তুলে দাও:
-                    /*
-                    const saveBtn = document.getElementById('saveBtn');
-                    if(saveBtn) saveBtn.click();
-                    */
-                }
-            }
-        });
-    </script>
-
 </body>
 </html>
