@@ -6,29 +6,34 @@ const loginBtn = document.getElementById('google-login-btn');
 // ১. লগইন বাটনের কাজ
 if (loginBtn) {
     loginBtn.addEventListener('click', () => {
-        // লোকাল কম্পিউটার নাকি লাইভ সাইট চেক করা
-        const isLocalhost = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
+        // ১. ইউজার এজেন্ট চেক করা (APK ডিটেক্ট করার জন্য)
+        const userAgent = navigator.userAgent.toLowerCase();
+        
+        // যদি 'wv' থাকে, তার মানে এটা অ্যান্ড্রয়েড ওয়েবভিউ বা APK
+        const isApk = userAgent.includes('wv') && userAgent.includes('android');
 
-        if (isLocalhost) {
-            console.log("Environment: Localhost (Using Popup)");
+        if (isApk) {
+            // === শুধুমাত্র APK এর জন্য Redirect ===
+            console.log("Environment: APK (Using Redirect)");
+            signInWithRedirect(auth, provider);
+        } else {
+            // === ওয়েবসাইট (লোকাল বা লাইভ) এর জন্য Popup ===
+            console.log("Environment: Web/Localhost (Using Popup)");
             signInWithPopup(auth, provider)
-                .then(() => {
+                .then((result) => {
                     // সফল হলে ড্যাশবোর্ডে যাও
+                    console.log("Login Success:", result.user);
                     window.location.replace("dashboard.html");
                 })
                 .catch((error) => {
                     console.error("Popup Login Error:", error);
                     alert("Login Failed: " + error.message);
                 });
-        } else {
-            // APK বা লাইভ সাইটের জন্য Redirect ভালো কাজ করে
-            console.log("Environment: Production/APK (Using Redirect)");
-            signInWithRedirect(auth, provider);
         }
     });
 }
 
-// ২. ইউজার লগইন চেক (রিডাইরেক্ট হয়ে ফিরে আসার পর এটা কাজ করবে)
+// ২. ইউজার লগইন চেক (রিডাইরেক্ট বা রিফ্রেশ হওয়ার পর এটা কাজ করবে)
 onAuthStateChanged(auth, (user) => {
     if (user) {
         console.log("User detected:", user.email);
