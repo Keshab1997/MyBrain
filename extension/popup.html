@@ -1,19 +1,38 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <style>
-    body { width: 200px; padding: 10px; font-family: sans-serif; text-align: center; }
-    button {
-      background: #2563eb; color: white; border: none;
-      padding: 10px 15px; border-radius: 5px; cursor: pointer; width: 100%;
-      font-weight: bold;
-    }
-    button:hover { background: #1d4ed8; }
-  </style>
+    <link rel="stylesheet" href="css/style.css"> <!-- যদি CSS থাকে -->
+    <style>
+        /* একটু স্টাইল দিলাম যাতে দেখতে সুন্দর লাগে */
+        body { width: 300px; padding: 15px; font-family: sans-serif; text-align: center; }
+        input {
+            width: 90%;
+            padding: 10px;
+            margin-bottom: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+        button {
+            width: 100%;
+            padding: 10px;
+            background-color: #2563EB;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        button:hover { background-color: #1D4ED8; }
+    </style>
 </head>
 <body>
-  <h3>🧠 MyBrain</h3>
-  <button id="saveBtn">Save Current Link</button>
-  <script src="popup.js"></script>
+    <h3>MyBrain Saver</h3>
+    
+    <!-- এই ইনপুট বক্সটি যোগ করা হয়েছে -->
+    <input type="text" id="linkInput" placeholder="Paste your link here...">
+
+    <button id="saveBtn">Save to Dashboard</button>
+
+    <script src="popup.js"></script>
 </body>
 </html>
