@@ -1,7 +1,7 @@
 // ১. কনফিগারেশন ইমপোর্ট
 import { auth, db } from "./firebase-config.js"; 
 import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-import { collection, addDoc, onSnapshot, query, where, orderBy, serverTimestamp, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+import { collection, addDoc, onSnapshot, query, where, orderBy, serverTimestamp, deleteDoc, doc, updateDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
 // ============================================
 // 👇 Cloudinary সেটআপ
@@ -114,40 +114,68 @@ onAuthStateChanged(auth, (user) => {
     }
 });
 
-// --- ৩. অটো সেভ (Android Share) ---
+// --- HELPER: URL Fixer (FIXED) ---
+function normalizeUrl(input) {
+    if (!input) return "";
+    let url = input.trim();
+    // যদি http/https না থাকে কিন্তু ডোমেইনের মতো দেখতে হয়
+    if (url && !url.startsWith('http://') && !url.startsWith('https://') && url.includes('.') && !url.includes(' ')) {
+        return 'https://' + url;
+    }
+    return url;
+}
+
+// --- ৩. অটো সেভ (Android Share - Optimized) ---
 async function handleSharedContent(userId) {
     const urlParams = new URLSearchParams(window.location.search);
     const sharedRaw = urlParams.get('note') || urlParams.get('text');
 
     if (sharedRaw && sharedRaw.trim() !== "") {
         try {
-            const decodedContent = decodeURIComponent(sharedRaw).trim();
-            if(noteInput) noteInput.value = "Saving shared link...";
+            let decodedContent = decodeURIComponent(sharedRaw).trim();
+            
+            // 👇 FIX: লিঙ্ক হলে অটোমেটিক https বসাবে
+            decodedContent = normalizeUrl(decodedContent);
+
+            if(noteInput) noteInput.value = "Saving...";
 
             let type = isValidURL(decodedContent) ? 'link' : 'text';
-            let linkMeta = {};
 
-            if (type === 'link') {
-                linkMeta = await getLinkPreviewData(decodedContent);
-            }
-
-            await addDoc(collection(db, "notes"), {
+            const docRef = await addDoc(collection(db, "notes"), {
                 uid: userId,
                 text: decodedContent,
                 type: type,
                 source: "android_share",
-                metaTitle: linkMeta.title || null,
-                metaDesc: linkMeta.description || null,
-                metaImg: linkMeta.image || null,
-                metaDomain: linkMeta.domain || null,
-                timestamp: serverTimestamp()
+                timestamp: serverTimestamp(),
+                metaTitle: null,
+                isLoadingMeta: type === 'link'
             });
 
             window.history.replaceState({}, document.title, window.location.pathname);
-            if(noteInput) noteInput.value = ""; 
+            if(noteInput) noteInput.value = "Saved!";
+
+            if (type === 'link') {
+                getLinkPreviewData(decodedContent)
+                    .then(async (linkMeta) => {
+                        await updateDoc(docRef, {
+                            metaTitle: linkMeta.title || null,
+                            metaDesc: linkMeta.description || null,
+                            metaImg: linkMeta.image || null,
+                            metaDomain: linkMeta.domain || null,
+                            isLoadingMeta: false
+                        });
+                    })
+                    .catch(async (err) => {
+                        console.error("Meta fetch failed:", err);
+                        await updateDoc(docRef, { isLoadingMeta: false });
+                    });
+            }
+
+            setTimeout(() => { if(noteInput && noteInput.value === "Saved!") noteInput.value = ""; }, 2000);
 
         } catch (error) {
             console.error("Auto-save failed:", error);
+            if(noteInput) noteInput.value = "Error!";
         }
     }
 }
@@ -166,7 +194,6 @@ async function getLinkPreviewData(url) {
         const urlObj = new URL(cleanUrl);
         metaData.domain = urlObj.hostname;
 
-        // তোমার নতুন ওয়ার্কার কল করা হচ্ছে
         const response = await fetch(`${WORKER_URL}?url=${encodeURIComponent(cleanUrl)}`);
         const result = await response.json();
 
@@ -180,7 +207,6 @@ async function getLinkPreviewData(url) {
         }
     } catch (error) {
         console.warn("Fetch error:", error);
-        // ফলব্যাক
         if (cleanUrl.includes('facebook.com')) {
             metaData.title = 'Facebook Post';
         } else if (cleanUrl.includes('instagram.com')) {
@@ -195,15 +221,17 @@ async function getLinkPreviewData(url) {
 }
 
 
-// --- ৪. ম্যানুয়াল সেভ ---
+// --- ৪. ম্যানুয়াল সেভ (FIXED) ---
 if (saveBtn) {
     saveBtn.addEventListener('click', async () => {
         const rawText = noteInput.value;
-        const text = rawText ? rawText.trim() : "";
         const file = fileInput.files[0];
         const user = auth.currentUser;
 
-        if (!text && !file) return alert("Please write something or select a file!");
+        if (!rawText && !file) return alert("Please write something or select a file!");
+
+        // 👇 FIX: এখানেও অটোমেটিক https বসাবে
+        const text = normalizeUrl(rawText);
 
         saveBtn.disabled = true;
         
@@ -234,7 +262,6 @@ if (saveBtn) {
                 saveBtn.innerText = "Fetching Preview..."; 
                 if (statusText) statusText.style.display = 'block';
                 
-                // তোমার নতুন ওয়ার্কার থেকে ডাটা আনবে
                 linkMeta = await getLinkPreviewData(text);
             }
 
@@ -242,13 +269,14 @@ if (saveBtn) {
             saveBtn.innerText = "Saving...";
             await addDoc(collection(db, "notes"), {
                 uid: user.uid,
-                text: text,
+                text: text, // Normalized text (with https)
                 fileUrl: fileUrl, 
                 type: type,
                 metaTitle: linkMeta.title || null,
                 metaDesc: linkMeta.description || null,
                 metaImg: linkMeta.image || null,
                 metaDomain: linkMeta.domain || null,
+                isLoadingMeta: false, 
                 timestamp: serverTimestamp()
             });
 
@@ -325,10 +353,10 @@ function loadUserNotes(uid) {
             }
             // B. লিংক
             else if (cardType === 'link') {
-                // নতুন ডাটা (ডাটাবেসে প্রিভিউ সেভ আছে)
+                // ১. যদি মেটাডাটা থাকে
                 if (data.metaTitle) {
                     contentHTML += `
-                    <a href="${data.text}" target="_blank" style="text-decoration:none; color:inherit; display:block; border:1px solid #e0e0e0; border-radius:10px; overflow:hidden; background: #fff; transition: transform 0.2s;">
+                    <a href="${data.text}" target="_blank" rel="noopener noreferrer" style="text-decoration:none; color:inherit; display:block; border:1px solid #e0e0e0; border-radius:10px; overflow:hidden; background: #fff; transition: transform 0.2s;">
                         ${data.metaImg ? `<div style="height:150px; background-image: url('${data.metaImg}'); background-size: cover; background-position: center;"></div>` : ''}
                         <div style="padding:12px;">
                             <h4 style="margin:0 0 5px 0; font-size:14px; color:#2c3e50; line-height:1.4;">${escapeHtml(data.metaTitle)}</h4>
@@ -341,7 +369,17 @@ function loadUserNotes(uid) {
                     <div style="margin-top:5px; font-size:11px; color:#aaa; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${escapeHtml(data.text)}</div>
                     `;
                 } 
-                // পুরনো ডাটা (এখনো রেন্ডার হবে কিন্তু API কল ছাড়া)
+                // ২. লোডিং স্টেট
+                else if (data.isLoadingMeta) {
+                    contentHTML += `
+                        <div style="padding: 15px; background: #f9f9f9; border-radius: 10px; border: 1px dashed #ccc; display:flex; align-items:center; gap:10px;">
+                            <div class="loader-spin"></div>
+                            <div style="font-size:12px; color:#666;">Fetching link details...</div>
+                        </div>
+                        <div style="margin-top:5px; font-size:11px; color:#aaa;">${escapeHtml(data.text)}</div>
+                    `;
+                }
+                // ৩. ফলব্যাক
                 else {
                     const previewId = `preview-${id}`;
                     contentHTML += `<div id="${previewId}"></div>`;
@@ -367,7 +405,7 @@ function loadUserNotes(uid) {
     });
 }
 
-// --- ৮. ফলব্যাক রেন্ডারার (পুরনো নোটের জন্য) ---
+// --- ৮. ফলব্যাক রেন্ডারার ---
 function renderForcedPreview(url, element) {
     if(!element) return;
     
@@ -398,7 +436,7 @@ function renderForcedPreview(url, element) {
     }
 
     element.innerHTML = `
-        <a href="${url}" target="_blank" style="text-decoration:none; display:flex; align-items:center; gap:15px; padding:15px; border-radius:12px; background: ${brandColor}; color: ${textColor}; box-shadow: 0 4px 6px rgba(0,0,0,0.1); transition: transform 0.2s;">
+        <a href="${url}" target="_blank" rel="noopener noreferrer" style="text-decoration:none; display:flex; align-items:center; gap:15px; padding:15px; border-radius:12px; background: ${brandColor}; color: ${textColor}; box-shadow: 0 4px 6px rgba(0,0,0,0.1); transition: transform 0.2s;">
             <div style="width:45px; height:45px; background:rgba(255,255,255,0.25); border-radius:50%; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
                 ${iconHtml}
             </div>
