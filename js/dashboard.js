@@ -54,7 +54,7 @@ const readModalContent = document.getElementById('readModalContent');
 const readModalDate = document.getElementById('readModalDate');
 const readModalFolder = document.getElementById('readModalFolder');
 const closeReadModalBtn = document.getElementById('closeReadModalBtn');
-const closeModalBtn = document.querySelector('.close-modal'); // জেনেরিক ক্লোজ বাটন
+const closeModalBtn = document.querySelector('.close-modal');
 
 // শেয়ার মোডাল এলিমেন্টস
 const shareModal = document.getElementById('shareModal');
@@ -65,20 +65,15 @@ onAuthStateChanged(auth, (user) => {
     if (!user) {
         window.location.href = "index.html"; 
     } else {
-        // ইউজার লগইন হলে এই ফাংশনগুলো কল হবে
         loadUserFolders(user.uid);
         trackTrashCount(user.uid); 
         
-        // ডিফল্টভাবে 'All' একটিভ থাকবে
         const allBtn = document.querySelector('.filter-btn[data-filter="all"]');
         if(allBtn) allBtn.classList.add('active');
         
         loadUserNotes(user.uid, 'All');
-        
-        // 👇 শেয়ার করা কন্টেন্ট হ্যান্ডেল করা (সব লোড হওয়ার পর)
         handleSharedContent(user.uid); 
         
-        // প্রোফাইল UI আপডেট
         const navUserName = document.getElementById('nav-user-name');
         const navUserImg = document.getElementById('nav-user-img');
         const navProfileDiv = document.getElementById('nav-mini-profile');
@@ -89,37 +84,26 @@ onAuthStateChanged(auth, (user) => {
 });
 
 // ==================================================
-// 📥 শেয়ার হ্যান্ডলার (Mobile Share Target - UPDATED)
+// 📥 শেয়ার হ্যান্ডলার (Mobile Share Target)
 // ==================================================
 function handleSharedContent(uid) {
-    // URL থেকে প্যারামিটার ধরা (manifest.json এর params অনুযায়ী)
     const p = new URLSearchParams(window.location.search);
     const title = p.get('title');
     const text = p.get('text');
-    const url = p.get('url');
-
+    
     let sharedContent = "";
 
-    // লজিক: সোশ্যাল মিডিয়া সাধারণত title এবং text/url পাঠায়
-    if (title) sharedContent += `**${title}**\n`; // টাইটেল বোল্ড করে দিলাম
-    if (text) sharedContent += text + "\n";
-    if (url) sharedContent += url;
+    if (title && title !== "null") sharedContent += `**${title}**\n\n`;
+    if (text && text !== "null") sharedContent += text;
 
-    // যদি শেয়ার করা কন্টেন্ট থাকে
     if(sharedContent.trim()) {
-        console.log("Shared Content Received:", sharedContent);
-        
-        // ইনপুট বক্সে সেট করে দাও
+        console.log("Shared Content:", sharedContent);
         if(noteInput) {
             noteInput.value = sharedContent.trim();
-            noteInput.focus(); // ফোকাস যাতে ইউজার দেখে
-            
-            // অটোমেটিক হাইট এডজাস্টমেন্ট (যদি থাকে)
             noteInput.style.height = 'auto';
-            noteInput.style.height = noteInput.scrollHeight + 'px';
+            noteInput.style.height = (noteInput.scrollHeight + 10) + 'px';
+            noteInput.focus();
         }
-
-        // URL ক্লিন করা (যাতে রিফ্রেশ দিলে আবার লেখাটা না আসে)
         window.history.replaceState({}, document.title, window.location.pathname);
     }
 }
@@ -127,58 +111,38 @@ function handleSharedContent(uid) {
 // ==================================================
 // 🗑️ ২. ট্র্যাশ ম্যানেজমেন্ট
 // ==================================================
-
-// A. রিয়েল-টাইম ট্র্যাশ কাউন্ট
 function trackTrashCount(uid) {
     const q = query(collection(db, "notes"), where("uid", "==", uid), where("status", "==", "trash"));
-    
     if(unsubscribeTrashCount) unsubscribeTrashCount();
-
     unsubscribeTrashCount = onSnapshot(q, (snapshot) => {
         const count = snapshot.size;
-        if(trashFilterBtn) {
-            trashFilterBtn.innerHTML = `🗑️ Trash ${count > 0 ? `(${count})` : ''}`;
-        }
+        if(trashFilterBtn) trashFilterBtn.innerHTML = `🗑️ Trash ${count > 0 ? `(${count})` : ''}`;
     });
 }
 
-// B. নোট রিকভার করা
 window.restoreNote = async (id) => {
-    try {
-        await updateDoc(doc(db, "notes", id), { 
-            status: 'active',
-            timestamp: serverTimestamp() 
-        });
-    } catch (error) {
-        alert("Error restoring note: " + error.message);
-    }
+    try { await updateDoc(doc(db, "notes", id), { status: 'active', timestamp: serverTimestamp() }); } 
+    catch (error) { alert("Error: " + error.message); }
 };
 
-// C. পার্মানেন্ট ডিলিট
 window.deleteForever = async (id) => {
-    if(confirm("Are you sure? This action cannot be undone.")) {
-        try {
-            await deleteDoc(doc(db, "notes", id));
-        } catch (error) {
-            alert("Error deleting note: " + error.message);
-        }
+    if(confirm("Are you sure? This cannot be undone.")) {
+        try { await deleteDoc(doc(db, "notes", id)); } 
+        catch (error) { alert("Error: " + error.message); }
     }
 };
 
 // ==================================================
 // 📁 ৩. ফোল্ডার ম্যানেজমেন্ট
 // ==================================================
-
 function loadUserFolders(uid) {
     const q = query(collection(db, "folders"), where("uid", "==", uid), orderBy("createdAt", "asc"));
-    
     if(unsubscribeFolders) unsubscribeFolders();
 
     unsubscribeFolders = onSnapshot(q, (snapshot) => {
         if(customFolderList) customFolderList.innerHTML = "";
         if(folderSelect) folderSelect.innerHTML = `<option value="General">General</option>`;
 
-        // "General" বাটন
         if(customFolderList) {
             const genBtn = document.createElement('div');
             genBtn.className = 'folder-chip';
@@ -195,25 +159,17 @@ function loadUserFolders(uid) {
             if(customFolderList) {
                 const btn = document.createElement('div');
                 btn.className = 'folder-chip';
-                
                 const nameSpan = document.createElement('span');
                 nameSpan.innerText = `📁 ${fName}`;
                 btn.appendChild(nameSpan);
-
                 const delIcon = document.createElement('span');
                 delIcon.className = 'folder-delete-btn';
                 delIcon.innerHTML = '×';
-                
-                delIcon.onclick = (e) => {
-                    e.stopPropagation(); 
-                    deleteCustomFolder(fId, fName);
-                };
-
+                delIcon.onclick = (e) => { e.stopPropagation(); deleteCustomFolder(fId, fName); };
                 btn.appendChild(delIcon);
                 btn.onclick = () => filterByFolder(fName, btn);
                 customFolderList.appendChild(btn);
             }
-
             if(folderSelect) {
                 const option = document.createElement('option');
                 option.value = fName;
@@ -238,11 +194,7 @@ if(createFolderBtn) {
         const folderName = prompt("Enter new folder name:");
         if(folderName && folderName.trim() !== "") {
             try {
-                await addDoc(collection(db, "folders"), {
-                    uid: auth.currentUser.uid,
-                    name: folderName.trim(),
-                    createdAt: serverTimestamp()
-                });
+                await addDoc(collection(db, "folders"), { uid: auth.currentUser.uid, name: folderName.trim(), createdAt: serverTimestamp() });
             } catch (e) { alert("Error creating folder"); }
         }
     });
@@ -265,7 +217,6 @@ async function deleteCustomFolder(folderId, folderName) {
 // ==================================================
 // 📝 ৪. নোট লোড এবং ভিউ লজিক
 // ==================================================
-
 function loadUserNotes(uid, filterType = 'All', filterValue = null) {
     currentViewType = filterType;
     const notesRef = collection(db, "notes");
@@ -274,24 +225,18 @@ function loadUserNotes(uid, filterType = 'All', filterValue = null) {
     const pinSection = document.getElementById('pinned-section');
     if(pinSection) pinSection.style.display = 'none';
 
-    // ইনপুট বক্স হাইড করা যদি Trash ভিউ হয়
     const inputArea = document.querySelector('.input-area');
-    if(inputArea) {
-        inputArea.style.display = (filterType === 'trash') ? 'none' : 'block';
-    }
+    if(inputArea) inputArea.style.display = (filterType === 'trash') ? 'none' : 'block';
 
     if (filterType === 'trash') {
         q = query(notesRef, where("uid", "==", uid), where("status", "==", "trash"), orderBy("timestamp", "desc"));
-    } 
-    else if (filterType === 'folder') {
+    } else if (filterType === 'folder') {
         loadPinnedNotes(uid); 
         q = query(notesRef, where("uid", "==", uid), where("status", "==", "active"), where("folder", "==", filterValue), orderBy("timestamp", "desc"));
-    }
-    else if (filterType !== 'All' && filterType !== 'all') {
+    } else if (filterType !== 'All' && filterType !== 'all') {
         loadPinnedNotes(uid);
         q = query(notesRef, where("uid", "==", uid), where("status", "==", "active"), where("type", "==", filterType), orderBy("timestamp", "desc"));
-    } 
-    else {
+    } else {
         loadPinnedNotes(uid);
         q = query(notesRef, where("uid", "==", uid), where("status", "==", "active"), orderBy("timestamp", "desc"));
     }
@@ -317,12 +262,9 @@ function loadUserNotes(uid, filterType = 'All', filterValue = null) {
 
         if(searchInput && searchInput.value) searchInput.dispatchEvent(new Event('input'));
         
-        // Drag & Drop
         if (typeof Sortable !== 'undefined' && filterType !== 'trash') {
              if (contentGrid.sortableInstance) contentGrid.sortableInstance.destroy();
-             contentGrid.sortableInstance = new Sortable(contentGrid, { 
-                 animation: 150, ghostClass: 'sortable-ghost', handle: '.drag-handle', delay: 100
-             });
+             contentGrid.sortableInstance = new Sortable(contentGrid, { animation: 150, ghostClass: 'sortable-ghost', handle: '.drag-handle', delay: 100 });
         }
     });
 }
@@ -344,14 +286,11 @@ function loadPinnedNotes(uid) {
     if(!pinSection || !pinGrid) return;
 
     onSnapshot(q, (snapshot) => {
-        if (snapshot.empty) {
-            pinSection.style.display = 'none';
-        } else {
+        if (snapshot.empty) pinSection.style.display = 'none';
+        else {
             pinSection.style.display = 'block';
             pinGrid.innerHTML = "";
-            snapshot.forEach((docSnap) => {
-                pinGrid.appendChild(createNoteCard(docSnap, false));
-            });
+            snapshot.forEach((docSnap) => { pinGrid.appendChild(createNoteCard(docSnap, false)); });
         }
     });
 }
@@ -359,7 +298,6 @@ function loadPinnedNotes(uid) {
 // ==================================================
 // 🎨 ৫. কার্ড জেনারেটর
 // ==================================================
-
 function createNoteCard(docSnap, isTrashView) {
     const data = docSnap.data();
     const id = docSnap.id;
@@ -373,7 +311,6 @@ function createNoteCard(docSnap, isTrashView) {
         dragIcon.className = 'drag-handle';
         dragIcon.innerHTML = '⋮⋮'; 
         card.appendChild(dragIcon);
-        
         if(data.isPinned) card.innerHTML += `<div class="pin-indicator">📌</div>`;
     }
 
@@ -419,22 +356,15 @@ function createNoteCard(docSnap, isTrashView) {
     }
     
     contentHTML += `</div>`;
-
     card.innerHTML += contentHTML; 
 
     const readMoreBtn = card.querySelector('.read-more-btn');
     if (readMoreBtn) {
-        readMoreBtn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            openReadModal(data, id);
-        });
+        readMoreBtn.addEventListener('click', (e) => { e.stopPropagation(); openReadModal(data, id); });
     }
 
     if (!isTrashView) {
-        card.addEventListener('contextmenu', (e) => {
-            e.preventDefault();
-            window.openContextMenu(e, id);
-        });
+        card.addEventListener('contextmenu', (e) => { e.preventDefault(); window.openContextMenu(e, id); });
     }
     return card;
 }
@@ -444,9 +374,7 @@ function generateTextHTML(text) {
     const tempDiv = document.createElement("div");
     tempDiv.innerHTML = marked.parse(text);
     const plainText = tempDiv.textContent || tempDiv.innerText || "";
-    const isLongText = plainText.length > 250;
-
-    if (isLongText) {
+    if (plainText.length > 250) {
         const shortText = plainText.substring(0, 250) + "...";
         return `<div class="note-text">${shortText}</div><button class="read-more-btn" style="color:#007bff; border:none; background:none; padding:0; cursor:pointer; font-size:13px; margin-top:5px;">Read More...</button>`;
     } else {
@@ -455,7 +383,7 @@ function generateTextHTML(text) {
 }
 
 // ==================================================
-// 💾 ৬. নোট সেভ লজিক
+// 💾 ৬. নোট সেভ লজিক (Preview Guaranteed)
 // ==================================================
 if (saveBtn) {
     saveBtn.addEventListener('click', async () => {
@@ -477,7 +405,9 @@ if (saveBtn) {
             let type = 'text';
             let linkMeta = {};
 
+            // ১. যদি ছবি থাকে (গ্যালারি বা অ্যাপ শেয়ার)
             if (file || androidSharedImage) {
+                saveBtn.innerText = "Uploading Image...";
                 const formData = new FormData();
                 formData.append('file', file || androidSharedImage);
                 formData.append('upload_preset', CLOUDINARY_PRESET); 
@@ -486,11 +416,16 @@ if (saveBtn) {
                 fileUrl = data.secure_url; 
                 type = 'image';
             } 
+            // ২. যদি টেক্সট হয় এবং সেটা URL হয়
             else if (isValidURL(text)) {
                 type = 'link';
+                // 👇 এখানে টাইমআউট বাদ দেওয়া হয়েছে, প্রিভিউ না আসা পর্যন্ত অপেক্ষা করবে
+                saveBtn.innerText = "Fetching Preview...";
                 linkMeta = await getLinkPreviewData(text);
             }
 
+            // ৩. ফায়ারবেসে সেভ
+            saveBtn.innerText = "Saving to Brain...";
             await addDoc(collection(db, "notes"), {
                 uid: user.uid, text: text, fileUrl: fileUrl, type: type,
                 color: selectedColor, folder: targetFolder, isPinned: false, status: 'active',
@@ -501,7 +436,6 @@ if (saveBtn) {
 
             noteInput.value = "";
             clearFileInput(); 
-            // সেভ হওয়ার পর 'All' ভিউতে ফেরত যাওয়া
             const allBtn = document.querySelector('.filter-btn[data-filter="all"]');
             if(allBtn) allBtn.click();
 
@@ -515,27 +449,23 @@ if (saveBtn) {
 }
 
 // ==================================================
-// 📤 ৮. শেয়ার মোডাল ও কনটেক্সট মেনু
+// 📤 ৮. শেয়ার মোডাল
 // ==================================================
 window.openContextMenu = async (e, id) => {
     e.stopPropagation();
     currentEditId = id;
     const docSnap = await getDoc(doc(db, "notes", id));
-    
     if(docSnap.exists()){
         const data = docSnap.data();
         if(!contextMenu) return;
 
-        let x = e.pageX;
-        let y = e.pageY;
+        let x = e.pageX; let y = e.pageY;
         if(e.type === 'click') {
            const rect = e.target.getBoundingClientRect();
-           x = rect.left - 100;
-           y = rect.bottom + window.scrollY;
+           x = rect.left - 100; y = rect.bottom + window.scrollY;
         }
 
-        contextMenu.style.top = `${y}px`;
-        contextMenu.style.left = `${x}px`;
+        contextMenu.style.top = `${y}px`; contextMenu.style.left = `${x}px`;
         contextMenu.style.display = 'block';
         
         document.getElementById('ctx-trash').onclick = () => { updateDoc(doc(db, "notes", id), { status: 'trash' }); contextMenu.style.display = 'none'; };
@@ -560,17 +490,32 @@ document.getElementById('share-tg')?.addEventListener('click', () => shareNote('
 document.getElementById('share-mail')?.addEventListener('click', () => shareNote('email'));
 document.getElementById('share-copy')?.addEventListener('click', () => shareNote('copy'));
 
-function shareNote(platform) {
+// 👇 শেয়ার ফাংশন (Image File Share Support)
+async function shareNote(platform) {
     const noteId = currentEditId;
     if (!noteId) return;
-    const shareUrl = window.location.origin + '/dashboard.html?note=' + encodeURIComponent(noteId);
-    const textToShare = "MyBrain Note:";
 
+    const docSnap = await getDoc(doc(db, "notes", noteId));
+    if (!docSnap.exists()) return;
+    const data = docSnap.data();
+
+    const shareUrl = window.location.origin + '/dashboard.html?note=' + encodeURIComponent(noteId);
+    const textToShare = data.text || "MyBrain Note";
+    const fullText = textToShare + "\n\n" + shareUrl;
+
+    // ১. যদি অ্যাপের ভেতর থেকে ছবি শেয়ার করা হয়
+    if (typeof Android !== "undefined" && Android.shareImage && data.type === 'image' && data.fileUrl) {
+        Android.shareImage(data.fileUrl, textToShare);
+        shareModal.style.display = 'none';
+        return; 
+    }
+
+    // ২. নরমাল শেয়ার
     switch(platform) {
-        case 'whatsapp': window.open(`https://wa.me/?text=${encodeURIComponent(textToShare + ' ' + shareUrl)}`, '_blank'); break;
+        case 'whatsapp': window.open(`https://wa.me/?text=${encodeURIComponent(fullText)}`, '_blank'); break;
         case 'facebook': window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}`, '_blank'); break;
         case 'telegram': window.open(`https://t.me/share/url?url=${encodeURIComponent(shareUrl)}&text=${encodeURIComponent(textToShare)}`, '_blank'); break;
-        case 'email': window.open(`mailto:?subject=${encodeURIComponent('Shared Note')}&body=${encodeURIComponent(textToShare + '\n\n' + shareUrl)}`, '_blank'); break;
+        case 'email': window.open(`mailto:?subject=${encodeURIComponent('Shared Note')}&body=${encodeURIComponent(fullText)}`, '_blank'); break;
         case 'copy': navigator.clipboard.writeText(shareUrl).then(() => alert('Link copied!')); break;
     }
     shareModal.style.display = 'none';
@@ -602,7 +547,7 @@ function openReadModal(data, id) {
 }
 
 // ==================================================
-// 🛠️ ১০. ইউটিলিটি ফাংশন ও ইভেন্ট
+// 🛠️ ১০. ইউটিলিটি ফাংশন
 // ==================================================
 if(updateNoteBtn) updateNoteBtn.onclick = async () => {
     if(currentEditId) await updateDoc(doc(db, "notes", currentEditId), { text: editNoteInput.value });
@@ -623,7 +568,14 @@ if(removeImageBtn) removeImageBtn.onclick = clearFileInput;
 function clearFileInput() { fileInput.value = ""; androidSharedImage = null; previewContainer.style.display = 'none'; }
 function normalizeUrl(u) { if(!u)return""; let x=u.trim(); return (x && !x.startsWith('http') && x.includes('.') && !x.includes(' ')) ? 'https://'+x : x; }
 function isValidURL(s) { try { return new URL(s).protocol.startsWith("http"); } catch { return false; } }
-async function getLinkPreviewData(url) { try{ const r=await fetch(`${WORKER_URL}?url=${encodeURIComponent(url)}`); const j=await r.json(); return j.status==='success'?j.data:{title:url}; }catch{return{title:url};} }
+
+async function getLinkPreviewData(url) { 
+    try{ 
+        const r = await fetch(`${WORKER_URL}?url=${encodeURIComponent(url)}`); 
+        const j = await r.json(); 
+        return j.status==='success'?j.data:{title:url}; 
+    }catch{return{title:url};} 
+}
 
 if (logoutBtn) logoutBtn.onclick = () => signOut(auth).then(() => window.location.href = "index.html");
 
@@ -656,29 +608,20 @@ window.addEventListener('click', (e) => {
 });
 
 // ==================================================
-// 📱 ১১. Android App Integration (Image Handling)
+// 📱 ১১. Android App Integration
 // ==================================================
-
-// জাভা অ্যাপ থেকে কল করা হবে যখন ছবি শেয়ার করা হবে
 window.receiveImageFromApp = (base64Data) => {
-    // 1. গ্লোবাল ভেরিয়েবলে সেট করা
     androidSharedImage = base64DataToBlob(base64Data);
-    
-    // 2. প্রিভিউ দেখানো
     const previewImage = document.getElementById('image-preview');
     const previewContainer = document.getElementById('image-preview-container');
-    
     if(previewImage && previewContainer) {
         previewImage.src = base64Data;
         previewContainer.style.display = 'block';
     }
-    
-    // 3. সেভ বাটন এনাবল করা
     const saveBtn = document.getElementById('saveBtn');
     if(saveBtn) saveBtn.innerText = "Save Image";
 };
 
-// Base64 স্ট্রিং কে Blob/File এ কনভার্ট করার ফাংশন (Cloudinary তে আপলোডের জন্য)
 function base64DataToBlob(dataurl) {
     var arr = dataurl.split(','), mime = arr[0].match(/:(.*?);/)[1],
         bstr = atob(arr[1]), n = bstr.length, u8arr = new Uint8Array(n);
