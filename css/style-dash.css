@@ -651,3 +651,66 @@ input[name="noteColor"]:checked + .color-circle {
     margin-bottom: 20px;
     display: block;
 }
+/* 👇 রিডিং মোডাল স্টাইল (এখন এখানে আছে) */
+.read-modal-overlay {
+    display: none; 
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(0, 0, 0, 0.6); z-index: 2000;
+    justify-content: center; align-items: center;
+    backdrop-filter: blur(5px);
+}
+.read-modal-paper {
+    background: #fff; width: 90%; max-width: 700px; height: 85vh;
+    border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+    display: flex; flex-direction: column; overflow: hidden;
+    position: relative; animation: slideUp 0.3s ease-out;
+}
+@keyframes slideUp { from { transform: translateY(50px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
+.read-header {
+    padding: 15px 20px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; background: #f9f9f9;
+}
+.read-meta { font-size: 12px; color: #666; display: flex; gap: 10px; align-items: center; }
+.read-badge { background: #e0e7ff; color: #4338ca; padding: 2px 8px; border-radius: 10px; font-weight: 500; }
+.read-close-btn { background: none; border: none; font-size: 24px; cursor: pointer; color: #555; }
+
+.read-content {
+    padding: 30px; overflow-y: auto; font-family: 'Georgia', serif; /* বইয়ের মতো ফন্ট */
+    font-size: 18px; line-height: 1.8; color: #2d2d2d; flex: 1;
+}
+.read-content img { max-width: 100%; border-radius: 8px; margin: 15px 0; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+.read-content a { color: #007bff; text-decoration: underline; }
+.read-content blockquote { border-left: 4px solid #007bff; padding-left: 15px; color: #555; font-style: italic; margin: 20px 0; }
+
+
+/* 👇 নতুন: শেয়ার মোডালের স্টাইল */
+.share-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 20px;
+}
+.share-options {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 15px;
+    width: 100%;
+    max-width: 400px;
+}
+.share-options button {
+    padding: 12px;
+    border: none;
+    border-radius: 8px;
+    font-size: 16px;
+    font-weight: 500;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+.share-options button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+}
