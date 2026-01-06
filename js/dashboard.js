@@ -654,3 +654,36 @@ window.addEventListener('click', (e) => {
         contextMenu.style.display = 'none';
     }
 });
+
+// ==================================================
+// 📱 ১১. Android App Integration (Image Handling)
+// ==================================================
+
+// জাভা অ্যাপ থেকে কল করা হবে যখন ছবি শেয়ার করা হবে
+window.receiveImageFromApp = (base64Data) => {
+    // 1. গ্লোবাল ভেরিয়েবলে সেট করা
+    androidSharedImage = base64DataToBlob(base64Data);
+    
+    // 2. প্রিভিউ দেখানো
+    const previewImage = document.getElementById('image-preview');
+    const previewContainer = document.getElementById('image-preview-container');
+    
+    if(previewImage && previewContainer) {
+        previewImage.src = base64Data;
+        previewContainer.style.display = 'block';
+    }
+    
+    // 3. সেভ বাটন এনাবল করা
+    const saveBtn = document.getElementById('saveBtn');
+    if(saveBtn) saveBtn.innerText = "Save Image";
+};
+
+// Base64 স্ট্রিং কে Blob/File এ কনভার্ট করার ফাংশন (Cloudinary তে আপলোডের জন্য)
+function base64DataToBlob(dataurl) {
+    var arr = dataurl.split(','), mime = arr[0].match(/:(.*?);/)[1],
+        bstr = atob(arr[1]), n = bstr.length, u8arr = new Uint8Array(n);
+    while(n--){
+        u8arr[n] = bstr.charCodeAt(n);
+    }
+    return new Blob([u8arr], {type:mime});
+}
