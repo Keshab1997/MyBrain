@@ -14,7 +14,7 @@
 }
 
 .search-wrapper {
-    flex-grow: 1; /* সার্চ বার যতটা সম্ভব জায়গা নেবে */
+    flex-grow: 1;
     position: relative;
 }
 
@@ -28,7 +28,7 @@
     outline: none;
     box-shadow: 0 2px 5px rgba(0,0,0,0.02);
     transition: all 0.3s ease;
-    box-sizing: border-box; /* ইনপুট বক্স যাতে ভেঙে না যায় */
+    box-sizing: border-box;
 }
 
 #searchInput:focus {
@@ -37,9 +37,8 @@
     transform: translateY(-1px);
 }
 
-/* ভিউ টগল বাটন (ডেস্কটপের জন্য) */
 .view-toggles {
-    display: flex; /* ডেস্কটপে visible থাকবে */
+    display: flex;
     gap: 8px;
     flex-shrink: 0;
 }
@@ -51,7 +50,7 @@
     align-items: center;
     justify-content: center;
     border: 1px solid #e1e3e8;
-    border-radius: 50%; /* গোল বাটন */
+    border-radius: 50%;
     cursor: pointer;
     background: #fff;
     color: #65676b;
@@ -72,13 +71,13 @@
     display: flex;
     gap: 10px;
     margin-bottom: 20px;
-    overflow-x: auto; /* মোবাইলে স্ক্রল হবে */
+    overflow-x: auto;
     padding-bottom: 5px;
     width: 100%;
-    scrollbar-width: none; /* ফায়ারফক্সে স্ক্রলবার লুকানো */
+    scrollbar-width: none;
 }
 .filter-wrapper::-webkit-scrollbar {
-    display: none; /* ক্রোমে স্ক্রলবার লুকানো */
+    display: none;
 }
 
 .filter-btn {
@@ -115,6 +114,7 @@
     border: 1px solid #e1e3e8;
     margin-bottom: 30px;
     box-sizing: border-box;
+    position: relative;
 }
 
 #noteInput {
@@ -126,7 +126,7 @@
     outline: none;
     font-family: inherit;
     color: #1c1e21;
-    margin-bottom: 10px;
+    margin-bottom: 5px;
     box-sizing: border-box;
 }
 
@@ -135,6 +135,35 @@
     font-size: 16px;
 }
 
+/* --- নতুন: কালার পিকার --- */
+.color-palette-wrapper {
+    margin-bottom: 10px;
+}
+
+.color-options {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.color-circle {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    cursor: pointer;
+    display: inline-block;
+    transition: transform 0.2s, border-color 0.2s;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+/* যখন রেডিও বাটন সিলেক্ট হবে */
+input[name="noteColor"]:checked + .color-circle {
+    transform: scale(1.2);
+    border: 2px solid #555 !important;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+}
+
+/* --- ইনপুট অ্যাকশন --- */
 .input-actions {
     display: flex;
     justify-content: space-between;
@@ -183,7 +212,7 @@
    ================================================= */
 .masonry-grid {
     width: 100%;
-    column-count: 3; /* ডিফল্ট ৩ কলাম (বড় স্ক্রিনে) */
+    column-count: 3;
     column-gap: 20px;
 }
 
@@ -199,7 +228,8 @@
     display: inline-block;
     width: 100%;
     box-sizing: border-box;
-    transition: transform 0.2s;
+    transition: transform 0.2s, box-shadow 0.2s;
+    position: relative; /* পিন আইকনের জন্য */
 }
 
 .note-card:hover {
@@ -207,37 +237,98 @@
     transform: translateY(-2px);
 }
 
+/* কার্ডের ভেতরে টেক্সট এবং মার্কডাউন স্টাইল */
 .note-text {
     font-size: 15px;
     color: #1c1e21;
-    white-space: pre-wrap;
     word-break: break-word;
+    line-height: 1.5;
 }
 
-/* ডিলিট এবং ফুটার */
+/* মার্কডাউন স্পেসিফিক স্টাইল */
+.note-text h1, .note-text h2, .note-text h3 {
+    margin: 5px 0;
+    font-size: 1.1em;
+    font-weight: 700;
+}
+.note-text ul, .note-text ol {
+    padding-left: 20px;
+    margin: 5px 0;
+}
+.note-text blockquote {
+    border-left: 3px solid #ccc;
+    margin: 5px 0;
+    padding-left: 10px;
+    color: #555;
+}
+.note-text code {
+    background: #f0f2f5;
+    padding: 2px 4px;
+    border-radius: 4px;
+    font-family: monospace;
+    font-size: 0.9em;
+}
+
+/* হ্যাশট্যাগ ডিজাইন (#Tag) */
+.note-tag {
+    display: inline-block;
+    background: #e7f3ff;
+    color: #1877f2;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 600;
+    margin-right: 5px;
+    text-decoration: none;
+    margin-top: 5px;
+}
+
+/* পিন আইকন (কার্ডের উপরে) */
+.pin-indicator {
+    position: absolute;
+    top: -8px;
+    right: -8px;
+    background: #fff;
+    border: 1px solid #ddd;
+    border-radius: 50%;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    z-index: 2;
+}
+
+/* ফুটার এবং ডিলিট */
 .card-footer {
     display: flex;
     justify-content: space-between;
     align-items: center;
     margin-top: 15px;
     padding-top: 10px;
-    border-top: 1px solid #f0f2f5;
+    border-top: 1px solid rgba(0,0,0,0.05); /* হালকা বর্ডার */
+}
+
+.card-date {
+    font-size: 11px;
+    color: #65676b;
 }
 
 .delete-btn {
     background: none;
     border: none;
     cursor: pointer;
-    font-size: 18px;
-    color: #ff4d4d;
-    opacity: 0.7;
+    font-size: 16px;
+    color: #65676b;
+    opacity: 0.6;
     transition: 0.2s;
 }
 
 .delete-btn:hover {
     opacity: 1;
-    background-color: #fff0f0;
-    border-radius: 50%;
+    color: #e74c3c; /* লালের শেড */
 }
 
 /* ==================================================
@@ -251,9 +342,10 @@
     display: block;
     text-decoration: none;
     color: inherit;
-    border: 1px solid #e1e3e8;
+    border: 1px solid rgba(0,0,0,0.1);
     border-radius: 8px;
     overflow: hidden;
+    background: #fff;
     transition: 0.2s;
 }
 
@@ -283,36 +375,135 @@
 }
 
 /* ==================================================
-   ৬. রেসপনসিভ ডিজাইন (Mobile & Tablet)
+   ৬. পিন সেকশন টাইটেল
    ================================================= */
-
-/* ট্যাবলেট ভিউ */
-@media (max-width: 1024px) {
-    .masonry-grid {
-        column-count: 2; /* ট্যাবলেটে ২ কলাম */
-    }
+.section-title {
+    font-size: 16px;
+    color: #65676b;
+    margin: 20px 0 10px 5px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 5px;
 }
 
-/* মোবাইল ভিউ */
-@media (max-width: 650px) {
-    .masonry-grid {
-        column-count: 1; /* মোবাইলে ১ কলাম */
-    }
-    
-    .input-actions {
-        flex-direction: row; 
-    }
-    
-    
-
-    .search-wrapper {
-        width: 100%;
-    }
+.section-divider {
+    border: 0;
+    border-top: 1px solid #e1e3e8;
+    margin: 20px 0;
 }
 
 /* ==================================================
-   ৭. লিস্ট ভিউ মোড (JS এর মাধ্যমে টগল হলে)
+   ৭. নতুন: এডিট মোডাল (Edit Modal)
    ================================================= */
+.custom-modal {
+    position: fixed;
+    z-index: 3000; /* সবার উপরে */
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0,0,0,0.6); /* কালো আভা */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(2px);
+}
+
+.modal-content {
+    background-color: #fff;
+    padding: 25px;
+    border-radius: 12px;
+    width: 90%;
+    max-width: 500px;
+    position: relative;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+    animation: slideIn 0.3s ease;
+}
+
+@keyframes slideIn {
+    from { transform: translateY(20px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+}
+
+.close-modal {
+    position: absolute;
+    right: 20px;
+    top: 15px;
+    font-size: 28px;
+    color: #aaa;
+    cursor: pointer;
+    font-weight: bold;
+}
+
+.close-modal:hover {
+    color: #000;
+}
+
+.modal-content h3 {
+    margin-top: 0;
+    margin-bottom: 15px;
+    color: #1c1e21;
+}
+
+/* ==================================================
+   ৮. নতুন: কনটেক্সট মেনু (Right Click Menu)
+   ================================================= */
+.context-menu {
+    position: absolute;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+    width: 160px;
+    z-index: 2000;
+    overflow: hidden;
+    border: 1px solid #e1e3e8;
+    animation: fadeIn 0.1s ease;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+.context-menu ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.context-menu li {
+    padding: 10px 15px;
+    cursor: pointer;
+    font-size: 14px;
+    color: #1c1e21;
+    border-bottom: 1px solid #f7f8fa;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.context-menu li:last-child {
+    border-bottom: none;
+}
+
+.context-menu li:hover {
+    background-color: #f0f2f5;
+}
+
+/* ==================================================
+   ৯. রেসপনসিভ ডিজাইন
+   ================================================= */
+@media (max-width: 1024px) {
+    .masonry-grid { column-count: 2; }
+}
+
+@media (max-width: 650px) {
+    .masonry-grid { column-count: 1; }
+    .input-actions { flex-direction: row; }
+    .search-wrapper { width: 100%; }
+}
+
 .masonry-grid.list-view {
     column-count: 1 !important;
     display: block;
@@ -324,4 +515,92 @@
     margin-right: auto;
     margin-bottom: 20px;
     display: block;
+}
+/* Drag Handle Icon */
+.drag-handle {
+    cursor: grab;
+    color: #ccc;
+    font-size: 18px;
+    padding: 5px;
+    position: absolute;
+    top: 5px;
+    left: 5px; /* কার্ডের বাম পাশে থাকবে */
+    z-index: 10;
+    touch-action: none; /* ব্রাউজারকে বলবে এখানে টাচ করলে স্ক্রল করো না */
+}
+.drag-handle:active {
+    cursor: grabbing;
+    color: #1877f2;
+}
+/* Folder List Styling */
+.folder-scroll-container {
+    display: flex;
+    align-items: center;
+    overflow-x: auto;
+    white-space: nowrap;
+    padding: 10px 0;
+    margin-bottom: 15px;
+    border-bottom: 1px solid #eee;
+}
+
+.folder-list {
+    display: inline-flex;
+    gap: 8px;
+}
+
+.folder-chip {
+    background: #f1f3f4;
+    border: 1px solid #ddd;
+    padding: 5px 12px;
+    border-radius: 15px;
+    font-size: 13px;
+    cursor: pointer;
+    transition: 0.2s;
+}
+
+.folder-chip:hover {
+    background: #e0e0e0;
+}
+
+.folder-chip.active {
+    background: #007bff;
+    color: white;
+    border-color: #007bff;
+}
+
+.add-folder-btn {
+    background: #eee;
+    border: 1px dashed #999;
+    width: 25px;
+    height: 25px;
+    border-radius: 50%;
+    margin-left: 10px;
+    cursor: pointer;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.folder-dropdown {
+    padding: 5px;
+    border-radius: 5px;
+    border: 1px solid #ccc;
+    font-size: 13px;
+    background: white;
+}
+/* ফোল্ডার ডিলিট আইকন */
+.folder-delete-btn {
+    margin-left: 8px;
+    font-size: 14px;
+    color: #999;
+    cursor: pointer;
+    font-weight: bold;
+    padding: 0 4px;
+    border-radius: 50%;
+}
+
+.folder-delete-btn:hover {
+    color: white;
+    background-color: #ff4444;
 }
