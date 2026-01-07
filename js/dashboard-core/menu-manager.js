@@ -6,70 +6,49 @@ import * as Utils from "./utils.js";
 let currentEditId = null;
 
 // ==================================================
-// ১. কনটেক্সট মেনু ওপেন (Right Click / 3-Dot)
+// ১. কনটেক্সট মেনু ওপেন (Fixed Positioning)
 // ==================================================
 export async function openContextMenu(e, id) {
     e.stopPropagation();
+    e.preventDefault();
+    
     currentEditId = id;
     const menu = document.getElementById('contextMenu');
     
-    // ডাটাবেস থেকে নোটের তথ্য আনা
+    // পিন স্ট্যাটাস আপডেট
     const docSnap = await getDoc(doc(db, "notes", id));
-    if(!docSnap.exists()) return;
-    const data = docSnap.data();
-
-    // পজিশন সেট (ডেস্কটপ ও মোবাইল হ্যান্ডলিং)
-    let x = e.pageX, y = e.pageY;
-    if(e.type === 'click') { 
-        const rect = e.target.getBoundingClientRect();
-        x = rect.left - 100; // মোবাইলে একটু বামে সরবে
-        y = rect.bottom + window.scrollY; 
+    if(docSnap.exists()) {
+        const data = docSnap.data();
+        const pinBtn = document.getElementById('ctx-pin');
+        if(pinBtn) pinBtn.innerHTML = data.isPinned ? "🚫 Unpin" : "📌 Pin";
     }
-    
-    menu.style.top = `${y}px`; menu.style.left = `${x}px`; menu.style.display = 'block';
 
-    // --- মেনু অ্যাকশনস ---
+    // মেনু পজিশন ক্যালকুলেশন (স্মার্ট পজিশনিং)
+    const menuWidth = 160;
+    const menuHeight = 200; // আনুমানিক উচ্চতা
+    const screenWidth = window.innerWidth;
+    const screenHeight = window.innerHeight;
 
-    // ১. ট্র্যাশ
-    document.getElementById('ctx-trash').onclick = () => { 
-        DBService.moveToTrashDB(id); 
-        menu.style.display='none'; 
-    };
+    let x = e.pageX;
+    let y = e.pageY;
 
-    // ২. কপি টেক্সট
-    document.getElementById('ctx-copy').onclick = () => { 
-        navigator.clipboard.writeText(data.text || data.fileUrl); 
-        menu.style.display='none'; 
-        alert("Copied!"); 
-    };
-    
-    // ৩. পিন / আনপিন
-    const pinBtn = document.getElementById('ctx-pin');
-    pinBtn.innerHTML = data.isPinned ? "🚫 Unpin" : "📌 Pin";
-    pinBtn.onclick = () => { 
-        DBService.togglePinDB(id, data.isPinned); 
-        menu.style.display='none'; 
-    };
+    // ডানদিকে জায়গা না থাকলে বামে সরাও
+    if (x + menuWidth > screenWidth) {
+        x = x - menuWidth;
+    }
 
-    // ৪. এডিট
-    document.getElementById('ctx-edit').onclick = () => {
-        document.getElementById('editNoteInput').value = data.text || "";
-        document.getElementById('editModal').style.display = 'flex';
-        menu.style.display='none';
-    };
+    // নিচে জায়গা না থাকলে উপরে তোলো (স্ক্রল পজিশন সহ)
+    if (y + menuHeight > window.scrollY + screenHeight) {
+        y = y - menuHeight;
+    }
 
-    // ৫. শেয়ার (নতুন যোগ করা হয়েছে)
-    document.getElementById('ctx-share').onclick = () => {
-        document.getElementById('shareModal').style.display = 'flex';
-        menu.style.display = 'none';
-    };
-
-    // ৬. ডাউনলোড (নতুন যোগ করা হয়েছে)
-    document.getElementById('ctx-download').onclick = () => {
-        downloadNoteContent(data);
-        menu.style.display = 'none';
-    };
+    menu.style.top = `${y}px`; 
+    menu.style.left = `${x}px`; 
+    menu.style.display = 'block';
 }
+
+// ... বাকি কোড (openReadModal, setupModals, shareLink, downloadNoteContent) আগের মতোই থাকবে ...
+// (নিচে পুরো ফাইলের বাকি অংশ দেওয়া হলো না কারণ শুধু উপরের ফাংশনটিই পরিবর্তন করতে হবে)
 
 // ==================================================
 // ২. রিডিং মোডাল ওপেন
@@ -80,7 +59,6 @@ export function openReadModal(data, id) {
     const dateEl = document.getElementById('readModalDate');
     const folderEl = document.getElementById('readModalFolder');
 
-    // তারিখ এবং ফোল্ডার সেট করা
     if(dateEl) dateEl.innerText = data.timestamp?.toDate().toLocaleString() || '';
     if(folderEl) folderEl.innerText = data.folder || 'General';
 
@@ -94,7 +72,7 @@ export function openReadModal(data, id) {
 }
 
 // ==================================================
-// ৩. মডাল এবং বাটন সেটআপ
+// ৩. মডাল এবং বাটন সেটআপ (সব অ্যাকশন এখানে থাকবে)
 // ==================================================
 export function setupModals() {
     
@@ -104,29 +82,94 @@ export function setupModals() {
     const shareModal = document.getElementById('shareModal');
     const contextMenu = document.getElementById('contextMenu');
 
-    // --- A. ক্লোজ বাটন লজিক ---
-    document.getElementById('closeReadModalBtn')?.addEventListener('click', () => readModal.style.display = 'none');
-    document.querySelector('#shareModal .close-modal')?.addEventListener('click', () => shareModal.style.display = 'none');
-    document.querySelector('#editModal .close-modal')?.addEventListener('click', () => editModal.style.display = 'none');
-
-    // --- B. আপডেট বাটন (Edit Save) ---
-    document.getElementById('updateNoteBtn').onclick = async () => {
+    // --- A. কনটেক্সট মেনু অ্যাকশন (Delete, Copy, Pin, etc.) ---
+    
+    // ১. ট্র্যাশ (Delete)
+    document.getElementById('ctx-trash')?.addEventListener('click', () => {
         if(currentEditId) {
-            await DBService.updateNoteContentDB(currentEditId, document.getElementById('editNoteInput').value);
-            editModal.style.display = 'none';
+            DBService.moveToTrashDB(currentEditId);
+            contextMenu.style.display = 'none';
         }
-    };
+    });
 
-    // --- C. শেয়ার বাটন লজিক ---
+    // ২. কপি
+    document.getElementById('ctx-copy')?.addEventListener('click', async () => {
+        if(currentEditId) {
+            const docSnap = await getDoc(doc(db, "notes", currentEditId));
+            if(docSnap.exists()) {
+                const text = docSnap.data().text || docSnap.data().fileUrl;
+                navigator.clipboard.writeText(text);
+                alert("Copied to clipboard!");
+            }
+            contextMenu.style.display = 'none';
+        }
+    });
+
+    // ৩. পিন / আনপিন
+    document.getElementById('ctx-pin')?.addEventListener('click', async () => {
+        if(currentEditId) {
+            const docSnap = await getDoc(doc(db, "notes", currentEditId));
+            if(docSnap.exists()) {
+                DBService.togglePinDB(currentEditId, docSnap.data().isPinned);
+            }
+            contextMenu.style.display = 'none';
+        }
+    });
+
+    // ৪. এডিট
+    document.getElementById('ctx-edit')?.addEventListener('click', async () => {
+        if(currentEditId) {
+            const docSnap = await getDoc(doc(db, "notes", currentEditId));
+            if(docSnap.exists()) {
+                document.getElementById('editNoteInput').value = docSnap.data().text || "";
+                editModal.style.display = 'flex';
+            }
+            contextMenu.style.display = 'none';
+        }
+    });
+
+    // ৫. শেয়ার (মেনু থেকে)
+    document.getElementById('ctx-share')?.addEventListener('click', () => {
+        shareModal.style.display = 'flex';
+        contextMenu.style.display = 'none';
+    });
+
+    // ৬. ডাউনলোড
+    document.getElementById('ctx-download')?.addEventListener('click', async () => {
+        if(currentEditId) {
+            const docSnap = await getDoc(doc(db, "notes", currentEditId));
+            if(docSnap.exists()) {
+                downloadNoteContent(docSnap.data());
+            }
+            contextMenu.style.display = 'none';
+        }
+    });
+
+
+    // --- B. শেয়ার মোডাল বাটন অ্যাকশন ---
     document.getElementById('share-wa')?.addEventListener('click', () => shareLink('whatsapp'));
     document.getElementById('share-fb')?.addEventListener('click', () => shareLink('facebook'));
     document.getElementById('share-tg')?.addEventListener('click', () => shareLink('telegram'));
     document.getElementById('share-mail')?.addEventListener('click', () => shareLink('email'));
     document.getElementById('share-copy')?.addEventListener('click', () => shareLink('copy'));
 
-    // --- D. উইন্ডো ক্লিক লিসেনার (Outside Click Close) ---
+
+    // --- C. এডিট সেভ বাটন ---
+    document.getElementById('updateNoteBtn')?.addEventListener('click', async () => {
+        if(currentEditId) {
+            await DBService.updateNoteContentDB(currentEditId, document.getElementById('editNoteInput').value);
+            editModal.style.display = 'none';
+        }
+    });
+
+
+    // --- D. ক্লোজ বাটন এবং আউটসাইড ক্লিক ---
+    document.getElementById('closeReadModalBtn')?.addEventListener('click', () => readModal.style.display = 'none');
+    document.querySelector('#shareModal .close-modal')?.addEventListener('click', () => shareModal.style.display = 'none');
+    document.querySelector('#editModal .close-modal')?.addEventListener('click', () => editModal.style.display = 'none');
+
     window.addEventListener('click', (e) => {
-        if(contextMenu && !contextMenu.contains(e.target) && !e.target.classList.contains('delete-btn')) {
+        if(contextMenu && !contextMenu.contains(e.target) && !e.target.classList.contains('delete-btn') && !e.target.classList.contains('context-trigger')) {
             contextMenu.style.display = 'none';
         }
         if (e.target === readModal) readModal.style.display = 'none';
@@ -139,7 +182,6 @@ export function setupModals() {
 // ৪. শেয়ার এবং ডাউনলোড ফাংশন
 // ==================================================
 
-// শেয়ার ফাংশন (Android & Web)
 async function shareLink(platform) {
     if (!currentEditId) return;
 
@@ -147,23 +189,23 @@ async function shareLink(platform) {
     if (!docSnap.exists()) return;
     const data = docSnap.data();
 
-    const shareUrl = window.location.origin + '?note=' + currentEditId;
+    // শেয়ার লিংক তৈরি
+    const shareUrl = window.location.origin + '/dashboard.html?text=' + encodeURIComponent(data.text || data.fileUrl);
     const textToShare = data.text || "Check this note!";
     const fullText = textToShare + "\n\n" + shareUrl;
 
-    // 📱 Android Native Share Logic
+    // 📱 Android Native Share
     if (typeof Android !== "undefined" && Android.shareImage) {
         if (data.type === 'image' && data.fileUrl) {
             Android.shareImage(data.fileUrl, textToShare);
         } else {
-            // টেক্সট শেয়ার করার জন্য ইমেজ মেথডই ব্যবহার করা হচ্ছে (অ্যাপ লজিক অনুযায়ী)
             Android.shareImage("", fullText);
         }
         document.getElementById('shareModal').style.display = 'none';
         return; 
     }
 
-    // 🌐 Web Share Logic
+    // 🌐 Web Share
     switch(platform) {
         case 'whatsapp': window.open(`https://wa.me/?text=${encodeURIComponent(fullText)}`, '_blank'); break;
         case 'facebook': window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}`, '_blank'); break;
@@ -174,7 +216,6 @@ async function shareLink(platform) {
     document.getElementById('shareModal').style.display = 'none';
 }
 
-// ডাউনলোড ফাংশন
 function downloadNoteContent(data) {
     try {
         if (data.type === 'image' && data.fileUrl) {
@@ -183,7 +224,15 @@ function downloadNoteContent(data) {
             if(downloadUrl.includes('cloudinary.com') && downloadUrl.includes('/upload/')) {
                 downloadUrl = downloadUrl.replace('/upload/', '/upload/fl_attachment/');
             }
-            window.location.href = downloadUrl;
+            
+            // নতুন ট্যাবে ওপেন করে ডাউনলোড ফোর্স করা
+            const a = document.createElement('a');
+            a.href = downloadUrl;
+            a.download = 'mybrain_image.jpg';
+            a.target = '_blank';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
         } 
         else {
             // টেক্সট ফাইল ডাউনলোড

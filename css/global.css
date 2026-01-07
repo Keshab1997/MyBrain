@@ -10,244 +10,160 @@
 }
 
 body {
-    background-color: #f0f2f5; /* মডার্ন হালকা ধূসর */
-    color: #1c1e21;
+    background-color: #f3f4f6; /* খুব হালকা গ্রে ব্যাকগ্রাউন্ড */
+    color: #1f2937;
     line-height: 1.6;
-    overflow-x: hidden; /* ডানে-বামে অনাকাঙ্ক্ষিত স্ক্রল বন্ধ */
+    overflow-x: hidden;
 }
 
-/* ২. সেন্ট্রাল কন্টেইনার (সবকিছুর মেইন সাইজ কন্ট্রোলার) */
+/* ২. সেন্ট্রাল কন্টেইনার (Full Width Logic) */
 .container {
-    max-width: 900px; /* স্ট্যান্ডার্ড সাইজ, যাতে চোখ না ছড়ায় */
-    width: 95%;       /* মোবাইলে ৯৫% জায়গা নেবে */
-    margin: 20px auto; /* মাঝখানে রাখার জন্য */
+    max-width: 1800px; /* আগে 900px ছিল, এখন অনেক বড় করা হলো */
+    width: 96%;        /* স্ক্রিনের ৯৬% জায়গা নেবে */
+    margin: 20px auto;
     display: flex;
     flex-direction: column;
-    gap: 20px; /* প্রতিটি সেকশনের মাঝে গ্যাপ */
+    gap: 25px;
 }
 
-/* ৩. নেভিগেশন বার (Navbar) - মেইন ফিক্স */
+/* ৩. নেভিগেশন বার (Navbar) */
 .navbar {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    background-color: #ffffff;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    background-color: rgba(255, 255, 255, 0.95); /* হালকা স্বচ্ছ */
+    backdrop-filter: blur(10px); /* গ্লাস ইফেক্ট */
+    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
     position: sticky;
     top: 0;
     z-index: 1000;
-    
-    /* 👇 এই লাইনটি ম্যাজিক করবে। লোগোকে কন্টেইনারের সাথে মিলিয়ে দেবে 👇 */
-    padding: 12px max(2.5%, calc((100% - 900px) / 2));
+    padding: 12px 2%; /* ডানে বামে ২% গ্যাপ */
 }
 
 .logo-section {
     display: flex;
     align-items: center;
     gap: 10px;
-    font-size: 1.4rem;
-    font-weight: 700;
-    color: #1877f2; /* ব্র্যান্ড ব্লু কালার */
+    font-size: 1.5rem;
+    font-weight: 800;
+    color: #2563eb;
+    letter-spacing: -0.5px;
 }
 
 .nav-right {
     display: flex;
     align-items: center;
-    gap: 15px;
+    gap: 20px;
 }
 
 .nav-links {
     display: flex;
-    gap: 10px;
+    gap: 15px;
 }
 
 .nav-item {
     text-decoration: none;
-    color: #65676b;
+    color: #4b5563;
     font-weight: 600;
-    padding: 8px 12px;
-    border-radius: 5px;
-    transition: 0.2s;
+    padding: 8px 16px;
+    border-radius: 8px;
+    transition: all 0.2s ease;
+    font-size: 15px;
 }
 
 .nav-item:hover, .nav-item.active {
-    background-color: #e4e6eb;
-    color: #1877f2;
+    background-color: #eff6ff;
+    color: #2563eb;
 }
 
 /* লগআউট বাটন */
 .btn-logout {
     display: flex;
     align-items: center;
-    gap: 6px;
-    background: #ffebeb;
+    gap: 8px;
+    background: #fee2e2;
     border: none;
-    color: #d32f2f;
-    padding: 8px 16px;
-    border-radius: 20px;
+    color: #dc2626;
+    padding: 8px 18px;
+    border-radius: 30px;
     cursor: pointer;
     font-size: 14px;
-    font-weight: 600;
+    font-weight: 700;
     transition: 0.2s;
 }
 
 .btn-logout:hover {
-    background: #ffcdd2;
+    background: #fecaca;
+    transform: translateY(-1px);
 }
 
-/* css/global.css - হ্যামবার্গার মেনু স্টাইল */
-
-/* ডিফল্টভাবে হ্যামবার্গার বাটন লুকানো থাকবে (ডেস্কটপে) */
+/* হ্যামবার্গার মেনু */
 .hamburger-btn {
     display: none;
     background: none;
     border: none;
     font-size: 24px;
     cursor: pointer;
-    color: #333;
+    color: #374151;
     padding: 5px;
 }
 
-/* ৪. মোবাইল রেসপনসিভ (হ্যামবার্গার মেনু সহ) */
-@media (max-width: 650px) {
-    .navbar {
-        padding: 10px 15px;
-    }
-    
-    .logo-text {
-        display: none; /* নাম লুকাবে */
-    }
-
-    /* লগআউট টেক্সট লুকানো, শুধু আইকন থাকবে */
-    .logout-text {
-        display: none;
-    }
-    .btn-logout {
-        padding: 8px; /* গোল বাটন */
-        border-radius: 50%;
-    }
-    .btn-logout img {
-        margin: 0;
-    }
-
-    /* হ্যামবার্গার বাটন দেখানো */
-    .hamburger-btn {
-        display: block;
-        margin-right: 10px;
-    }
-
-    /* মেনু ডিজাইন (লুকানো অবস্থায়) */
-    .nav-links {
-        display: none; /* ডিফল্ট হাইড */
-        position: absolute;
-        top: 60px; /* ন্যাপবারের ঠিক নিচে */
-        right: 20px;
-        background-color: #ffffff;
-        flex-direction: column;
-        width: 150px;
-        padding: 15px;
-        border-radius: 12px;
-        box-shadow: 0 10px 30px rgba(0,0,0,0.15); /* সুন্দর শ্যাডো */
-        border: 1px solid #f0f0f0;
-        z-index: 1001;
-    }
-
-    /* জাভাস্ক্রিপ্ট দিয়ে যখন 'active' ক্লাস যুক্ত হবে তখন দেখাবে */
-    .nav-links.active {
-        display: flex;
-        animation: slideDown 0.3s ease;
-    }
-
-    .nav-item {
-        padding: 10px;
-        border-radius: 8px;
-        text-align: center;
-        background: #f9fafb;
-        margin-bottom: 5px;
-    }
-
-    .nav-item:hover {
-        background: #eef2ff;
-    }
-}
-
-/* ড্রপডাউন এনিমেশন */
-@keyframes slideDown {
-    from { opacity: 0; transform: translateY(-10px); }
-    to { opacity: 1; transform: translateY(0); }
-}
-/* --- Navbar Mini Profile --- */
+/* মিনি প্রোফাইল */
 .nav-mini-profile {
     display: flex;
     align-items: center;
-    gap: 8px;
-    margin-right: 15px;
-    padding: 5px 10px;
-    background: #f3f4f6;
+    gap: 10px;
+    padding: 4px 12px 4px 4px;
+    background: #fff;
+    border: 1px solid #e5e7eb;
     border-radius: 30px;
     transition: 0.3s;
+    cursor: pointer;
+}
+
+.nav-mini-profile:hover {
+    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
 }
 
 .nav-avatar {
-    width: 32px;
-    height: 32px;
+    width: 36px;
+    height: 36px;
     border-radius: 50%;
     object-fit: cover;
-    border: 2px solid #fff;
 }
 
 .nav-username {
     font-size: 14px;
     font-weight: 600;
-    color: #333;
-    max-width: 100px;
+    color: #374151;
+    max-width: 120px;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
 }
 
-/* --- Menu Items Style --- */
-.nav-item {
-    display: flex;
-    align-items: center;
-    gap: 8px; /* আইকন এবং টেক্সটের মাঝে গ্যাপ */
-    text-decoration: none;
-    color: #666;
-    font-weight: 500;
-    padding: 8px 12px;
-    border-radius: 8px;
-    transition: 0.3s;
-}
-
-.nav-item:hover {
-    background: #f3f4f6;
-    color: #000;
-}
-
-/* লগআউট বাটন স্টাইল (মেনুর ভেতর) */
-.logout-item {
-    color: #dc2626 !important; /* লাল রঙ */
-    margin-top: 5px; /* একটু আলাদা করার জন্য */
-}
-
-.logout-item:hover {
-    background: #fee2e2 !important;
-}
-
-/* --- Mobile Responsive Fix --- */
-@media (max-width: 650px) {
-    /* মোবাইলে নাম লুকাবে, শুধু ছবি থাকবে (জায়গা বাঁচাতে) */
-    .nav-username {
-        display: none;
-    }
-    .nav-mini-profile {
-        background: transparent;
-        padding: 0;
-        margin-right: 10px;
-    }
+/* মোবাইল রেসপনসিভ */
+@media (max-width: 768px) {
+    .logo-text { display: none; }
+    .nav-username { display: none; }
+    .nav-mini-profile { border: none; background: transparent; padding: 0; }
     
-    /* মেনুর ভেতরের আইটেম */
+    .hamburger-btn { display: block; }
+    
     .nav-links {
-        top: 65px;
+        display: none;
+        position: absolute;
+        top: 70px;
+        right: 20px;
+        background-color: #ffffff;
+        flex-direction: column;
+        width: 200px;
+        padding: 20px;
+        border-radius: 16px;
+        box-shadow: 0 10px 40px rgba(0,0,0,0.15);
+        z-index: 1001;
     }
+
+    .nav-links.active { display: flex; }
+    .nav-item { width: 100%; text-align: center; margin-bottom: 5px; }
 }

@@ -1,15 +1,8 @@
-// ১. কনফিগারেশন ইমপোর্ট (firebase-config.js থেকে)
+// js/vault.js (SECURE VERSION)
+
 import { db, auth } from './firebase-config.js';
-
-// ২. ফায়ারবেস ফাংশন ইমপোর্ট
-import { 
-    collection, addDoc, onSnapshot, query, where, orderBy, deleteDoc, doc, serverTimestamp 
-} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-
-import { 
-    onAuthStateChanged, signOut 
-} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-
+import { collection, addDoc, onSnapshot, query, where, orderBy, deleteDoc, doc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
 // DOM Elements
 const siteInput = document.getElementById('siteName');
@@ -21,24 +14,36 @@ const togglePassBtn = document.getElementById('togglePass');
 const statusMsg = document.getElementById('vaultStatus');
 const csvInput = document.getElementById('csvInput'); 
 const exportBtn = document.getElementById('exportBtn'); 
-
-// [FIXED] HTML অনুযায়ী সঠিক ID ব্যবহার করা হয়েছে
 const logoutBtn = document.getElementById('menu-logout-btn'); 
-
-// [FIXED] HTML এ তোমার ID ছিল 'vaultSearchInput'
 const searchInput = document.getElementById('vaultSearchInput');
 
 let currentUser = null;
 let allSecrets = [];
+let masterKey = null; // এটি ডাটাবেসে সেভ হবে না
 
-// ৩. অথেনটিকেশন চেক
+// ১. মাস্টার পাসওয়ার্ড প্রম্পট ফাংশন
+function requestMasterPassword() {
+    const input = prompt("🔐 Enter your Vault Master Password/PIN to unlock:", "");
+    if (input && input.trim().length > 0) {
+        masterKey = input.trim();
+        return true;
+    } else {
+        alert("Master Password is required to access the Vault!");
+        window.location.href = "dashboard.html"; // পাসওয়ার্ড না দিলে বের করে দিন
+        return false;
+    }
+}
+
 onAuthStateChanged(auth, (user) => {
     if (user) {
         currentUser = user;
-        console.log("Vault User:", user.email);
-        loadSecrets(user.uid);
         
-        // মিনি প্রোফাইল আপডেট (Navbar)
+        // ইউজার লগইন করার পর মাস্টার পাসওয়ার্ড চাইবে
+        if (requestMasterPassword()) {
+            loadSecrets(user.uid);
+        }
+
+        // প্রোফাইল সেটআপ
         const navUserName = document.getElementById('nav-user-name');
         const navUserImg = document.getElementById('nav-user-img');
         const navProfileDiv = document.getElementById('nav-mini-profile');
@@ -52,187 +57,117 @@ onAuthStateChanged(auth, (user) => {
     }
 });
 
-// --- ৪. সার্চ লজিক (FIXED) ---
+// সার্চ লজিক
 if (searchInput) {
     searchInput.addEventListener('input', (e) => {
         const searchText = e.target.value.toLowerCase();
-        // কার্ডগুলো সিলেক্ট করা
-        const cards = document.querySelectorAll('.secret-card');
-
-        cards.forEach(card => {
-            // কার্ডের ভেতরের সাইট নেম এবং ইউজারনেম চেক করা
-            const siteNameEl = card.querySelector('.secret-header span');
-            const userNameEl = card.querySelector('.secret-username');
-            
-            const siteName = siteNameEl ? siteNameEl.innerText.toLowerCase() : "";
-            const userName = userNameEl ? userNameEl.innerText.toLowerCase() : "";
-
-            // যদি সাইট নেম অথবা ইউজারনেম এর সাথে সার্চ টেক্সট মিলে যায়
-            if (siteName.includes(searchText) || userName.includes(searchText)) {
-                card.style.display = 'block';
-            } else {
-                card.style.display = 'none';
-            }
+        document.querySelectorAll('.secret-card').forEach(card => {
+            const siteName = card.querySelector('.secret-header span')?.innerText.toLowerCase() || "";
+            const userName = card.querySelector('.secret-username')?.innerText.toLowerCase() || "";
+            card.style.display = (siteName.includes(searchText) || userName.includes(searchText)) ? 'block' : 'none';
         });
     });
-} else {
-    console.error("Search Input (vaultSearchInput) not found in HTML");
 }
 
-// ৫. পাসওয়ার্ড সেভ লজিক
+// সেভ বাটন
 if(saveBtn) {
     saveBtn.addEventListener('click', async () => {
         await saveSingleSecret(siteInput.value, userInput.value, passInput.value);
-        
-        siteInput.value = ""; 
-        userInput.value = ""; 
-        passInput.value = "";
+        siteInput.value = ""; userInput.value = ""; passInput.value = "";
     });
 }
 
-// সিঙ্গেল পাসওয়ার্ড সেভ করার ফাংশন
 async function saveSingleSecret(site, username, password) {
-    if (!site || !password) {
-        alert("Site name and Password are required!");
-        return;
-    }
+    if (!site || !password) { alert("Site name and Password are required!"); return; }
+    if (!masterKey) { alert("Vault is locked! Refresh page."); return; }
 
     try {
-        if(statusMsg) {
-            statusMsg.style.display = "block";
-            statusMsg.style.color = "blue";
-            statusMsg.textContent = "Encrypting & Saving...";
-        }
+        if(statusMsg) { statusMsg.style.display = "block"; statusMsg.style.color = "blue"; statusMsg.textContent = "Encrypting & Saving..."; }
         
-        // এনক্রিপশন
-        const encryptedPassword = CryptoJS.AES.encrypt(password, currentUser.uid).toString();
+        // 🔥 SECURE ENCRYPTION: UID + MasterKey ব্যবহার করা হচ্ছে
+        const encryptionKey = currentUser.uid + masterKey;
+        const encryptedPassword = CryptoJS.AES.encrypt(password, encryptionKey).toString();
 
-        await addDoc(collection(db, "vault"), {
-            userId: currentUser.uid,
-            site: site,
-            username: username || "",
-            password: encryptedPassword,
-            createdAt: serverTimestamp()
+        await addDoc(collection(db, "vault"), { 
+            userId: currentUser.uid, 
+            site: site, 
+            username: username || "", 
+            password: encryptedPassword, 
+            createdAt: serverTimestamp() 
         });
 
-        if(statusMsg) {
-            statusMsg.style.color = "green";
-            statusMsg.textContent = "Saved Securely!";
-            setTimeout(() => statusMsg.style.display = 'none', 1500);
-        }
-
-    } catch (error) {
-        console.error("Error saving:", error);
-        if(statusMsg) {
-            statusMsg.style.color = "red";
-            statusMsg.textContent = "Error: " + error.message;
-        }
+        if(statusMsg) { statusMsg.style.color = "green"; statusMsg.textContent = "Saved Securely!"; setTimeout(() => statusMsg.style.display = 'none', 1500); }
+    } catch (error) { 
+        console.error("Error saving:", error); 
+        if(statusMsg) { statusMsg.style.color = "red"; statusMsg.textContent = "Error: " + error.message; } 
     }
 }
 
-// ৬. Bitwarden CSV Import Logic
+// CSV Import
 if(csvInput) {
     csvInput.addEventListener('change', (e) => {
         const file = e.target.files[0];
-        if (!file) return;
-
-        if(!confirm(`Import passwords from ${file.name}?`)) return;
-
-        if(statusMsg) {
-            statusMsg.style.display = 'block';
-            statusMsg.textContent = "Reading CSV...";
-        }
+        if (!file || !confirm(`Import passwords from ${file.name}?`)) return;
+        if (!masterKey) { alert("Vault is locked!"); return; }
 
         Papa.parse(file, {
-            header: true,
-            skipEmptyLines: true,
+            header: true, skipEmptyLines: true,
             complete: async function(results) {
                 const rows = results.data;
                 let count = 0;
-                
                 if(statusMsg) statusMsg.textContent = `Importing ${rows.length} items...`;
-
                 for (let row of rows) {
                     const site = row.name || row.login_uri || row.Title || "Unknown Site";
                     const username = row.login_username || row.Username || "";
                     const password = row.login_password || row.Password;
-
-                    if (password) {
-                        await saveSingleSecret(site, username, password);
-                        count++;
-                    }
+                    if (password) { await saveSingleSecret(site, username, password); count++; }
                 }
                 alert(`Success! Imported ${count} passwords.`);
                 if(statusMsg) statusMsg.style.display = 'none';
                 csvInput.value = ""; 
             },
-            error: function(err) {
-                alert("CSV Error: " + err.message);
-            }
+            error: function(err) { alert("CSV Error: " + err.message); }
         });
     });
 }
 
-// ৭. Export All Function
+// Export Logic
 if(exportBtn) {
     exportBtn.addEventListener('click', () => {
-        if (allSecrets.length === 0) {
-            alert("Vault is empty!");
-            return;
-        }
-
+        if (allSecrets.length === 0) { alert("Vault is empty!"); return; }
+        if (!masterKey) { alert("Vault is locked!"); return; }
         if(!confirm("Warning: Exporting will download DECRYPTED passwords. Continue?")) return;
 
         const csvData = allSecrets.map(secret => {
             let realPass = "";
-            try {
-                const bytes = CryptoJS.AES.decrypt(secret.password, currentUser.uid);
-                realPass = bytes.toString(CryptoJS.enc.Utf8);
+            try { 
+                const encryptionKey = currentUser.uid + masterKey;
+                realPass = CryptoJS.AES.decrypt(secret.password, encryptionKey).toString(CryptoJS.enc.Utf8); 
+                if(!realPass) realPass = "Wrong Master Key"; // যদি ভুল পাসওয়ার্ড দিয়ে পেজ লোড হয়
             } catch(e) { realPass = "Error"; }
-
-            return {
-                Title: secret.site,
-                Username: secret.username,
-                Password: realPass,
-                URL: secret.site
-            };
+            return { Title: secret.site, Username: secret.username, Password: realPass, URL: secret.site };
         });
 
         const csv = Papa.unparse(csvData);
         const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
         const link = document.createElement("a");
-        link.href = URL.createObjectURL(blob);
-        link.download = "mybrain_vault_backup.csv";
-        link.click();
+        link.href = URL.createObjectURL(blob); link.download = "mybrain_vault_backup.csv"; link.click();
     });
 }
 
-// ৮. ডাটা লোড করা এবং দেখানো
+// Load Secrets
 function loadSecrets(userId) {
-    const q = query(
-        collection(db, "vault"), 
-        where("userId", "==", userId), 
-        orderBy("createdAt", "desc")
-    );
-
+    const q = query(collection(db, "vault"), where("userId", "==", userId), orderBy("createdAt", "desc"));
     onSnapshot(q, (snapshot) => {
         if(!vaultGrid) return;
-        
-        vaultGrid.innerHTML = "";
-        allSecrets = [];
-
-        if (snapshot.empty) {
-            vaultGrid.innerHTML = '<p style="text-align:center; color:#888; width:100%;">No passwords saved yet.</p>';
-            return;
-        }
+        vaultGrid.innerHTML = ""; allSecrets = [];
+        if (snapshot.empty) { vaultGrid.innerHTML = '<p style="text-align:center; color:#888; width:100%;">No passwords saved yet.</p>'; return; }
 
         snapshot.forEach((docSnap) => {
             const data = docSnap.data();
             allSecrets.push(data);
-            
             const card = document.createElement('div');
-            card.className = 'secret-card'; // সার্চের জন্য এই ক্লাস জরুরি
-            
+            card.className = 'secret-card'; 
             const hasUser = data.username && data.username.trim() !== "";
 
             card.innerHTML = `
@@ -240,84 +175,57 @@ function loadSecrets(userId) {
                     <span style="font-weight:bold; color:#333;">${data.site}</span>
                     <button class="delete-btn" onclick="deleteSecret('${docSnap.id}')" title="Delete">🗑️</button>
                 </div>
-                
                 <div class="secret-user-row">
                     <span class="secret-username" title="${data.username}">${hasUser ? data.username : 'No User'}</span>
                     ${hasUser ? `<button class="copy-user-btn" onclick="copyUsername('${data.username}')" title="Copy Username">📋</button>` : ''}
                 </div>
-                
                 <div class="secret-pass-area">
                     <span id="pass-text-${docSnap.id}" class="pass-dots">••••••••</span>
                     <div class="card-actions">
                         <button onclick="revealPass('${docSnap.id}', '${data.password}')" title="Show">👁️</button>
                         <button onclick="copyPass('${docSnap.id}', '${data.password}')" title="Copy Password">📋</button>
                     </div>
-                </div>
-            `;
+                </div>`;
             vaultGrid.appendChild(card);
         });
-    }, (error) => {
-        console.error("Snapshot Error:", error);
     });
 }
 
-// ৯. গ্লোবাল ফাংশন সমূহ
-window.copyUsername = (text) => {
-    navigator.clipboard.writeText(text).then(() => {
-        // Optional toast
-    }).catch(err => console.error('Failed to copy: ', err));
-};
+// Global Functions
+window.copyUsername = (text) => navigator.clipboard.writeText(text);
 
 window.revealPass = (id, encryptedPass) => {
     const passField = document.getElementById(`pass-text-${id}`);
-    if (passField.textContent !== "••••••••") {
-        passField.textContent = "••••••••";
-        return;
-    }
-    try {
-        const bytes = CryptoJS.AES.decrypt(encryptedPass, currentUser.uid);
-        const original = bytes.toString(CryptoJS.enc.Utf8);
-        passField.textContent = original || "Error";
+    if (passField.textContent !== "••••••••") { passField.textContent = "••••••••"; return; }
+    if (!masterKey) { requestMasterPassword(); return; }
+
+    try { 
+        const encryptionKey = currentUser.uid + masterKey;
+        const decrypted = CryptoJS.AES.decrypt(encryptedPass, encryptionKey).toString(CryptoJS.enc.Utf8);
+        
+        if(decrypted) {
+            passField.textContent = decrypted;
+        } else {
+            alert("Wrong Master Password! Please refresh and try again.");
+        }
     } catch (e) { alert("Decrypt Error"); }
 };
 
 window.copyPass = (id, encryptedPass) => {
-    try {
-        const bytes = CryptoJS.AES.decrypt(encryptedPass, currentUser.uid);
-        const original = bytes.toString(CryptoJS.enc.Utf8);
-        navigator.clipboard.writeText(original);
-        alert("Password Copied!");
+    if (!masterKey) { requestMasterPassword(); return; }
+    try { 
+        const encryptionKey = currentUser.uid + masterKey;
+        const decrypted = CryptoJS.AES.decrypt(encryptedPass, encryptionKey).toString(CryptoJS.enc.Utf8);
+        if(decrypted) {
+            navigator.clipboard.writeText(decrypted); 
+            alert("Password Copied!"); 
+        } else {
+            alert("Wrong Master Password!");
+        }
     } catch (e) { alert("Copy Failed"); }
 };
 
-window.deleteSecret = async (id) => {
-    if(confirm("Are you sure you want to delete this?")) {
-        try {
-            await deleteDoc(doc(db, "vault", id));
-        } catch (error) {
-            console.error("Delete Error", error);
-        }
-    }
-};
+window.deleteSecret = async (id) => { if(confirm("Are you sure?")) await deleteDoc(doc(db, "vault", id)); };
 
-// পাসওয়ার্ড ইনপুট টগল
-if(togglePassBtn) {
-    togglePassBtn.addEventListener('click', () => {
-        passInput.type = passInput.type === "password" ? "text" : "password";
-    });
-}
-
-// ১০. লগআউট (FIXED)
-if(logoutBtn){
-    logoutBtn.addEventListener('click', (e) => {
-        e.preventDefault();
-        signOut(auth).then(() => {
-            console.log("Logged out");
-            window.location.href = "index.html";
-        }).catch((err) => {
-            console.error("Logout Error:", err);
-        });
-    });
-} else {
-    console.warn("Logout button (menu-logout-btn) not found in DOM");
-}
+if(togglePassBtn) togglePassBtn.addEventListener('click', () => passInput.type = passInput.type === "password" ? "text" : "password");
+if(logoutBtn) logoutBtn.addEventListener('click', (e) => { e.preventDefault(); signOut(auth).then(() => window.location.href = "index.html"); });
