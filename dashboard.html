@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MyBrain Dashboard</title>
     
-    <!-- CSS লিংক -->
+    <!-- CSS লিংকসমূহ -->
     <link rel="stylesheet" href="css/global.css">
     <link rel="stylesheet" href="css/layout.css">
     <link rel="stylesheet" href="css/style-profile.css">
@@ -56,20 +56,20 @@
 
 <div class="container">
     
-    <!-- ২. ইনপুট এরিয়া (এখন সবার উপরে) -->
+    <!-- ২. ইনপুট এরিয়া -->
     <div class="input-area" style="margin-bottom: 20px;">
         <textarea id="noteInput" placeholder="Save a note, link or idea... (supports Markdown)"></textarea>
         
-        <!-- ফোল্ডার সিলেক্ট অপশন -->
+        <!-- ফোল্ডার সিলেক্ট -->
         <div class="folder-selector-wrapper" style="margin-bottom: 10px;">
             <label style="font-size: 12px; color: #666;">Save to:</label>
             <select id="folderSelect" class="folder-dropdown">
                 <option value="General">General</option>
-                <!-- JS দিয়ে এখানে ফোল্ডার নাম আসবে -->
+                <!-- JS দিয়ে এখানে ফোল্ডার লোড হবে -->
             </select>
         </div>
         
-        <!-- কালার সিলেকশন প্যালেট -->
+        <!-- কালার প্যালেট -->
         <div class="color-palette-wrapper" style="margin: 10px 0; display: flex; gap: 10px; align-items: center;">
             <span style="font-size: 12px; color: #666;">Color:</span>
             <div class="color-options">
@@ -106,7 +106,7 @@
         <p id="uploadStatus" style="display:none; color: green; font-size: 12px; margin-top:5px;">Uploading...</p>
     </div>
 
-    <!-- ৩. ফিল্টার এবং ফোল্ডার (মাঝখানে) -->
+    <!-- ৩. ফিল্টার এবং ফোল্ডার -->
     <div class="filter-section" style="margin-bottom: 20px;">
         <div class="filter-wrapper">
             <button class="filter-btn active" data-filter="all">All</button>
@@ -117,14 +117,12 @@
         </div>
         <div class="folder-scroll-container">
             <span style="font-size:12px; color:#666; margin-right:5px;">📁 Folders:</span>
-            <div id="custom-folder-list" class="folder-list">
-                <!-- জাভাস্ক্রিপ্ট দিয়ে এখানে ফোল্ডার লোড হবে -->
-            </div>
+            <div id="custom-folder-list" class="folder-list"></div>
             <button id="createFolderBtn" class="add-folder-btn" title="Create New Folder">+</button>
         </div>
     </div>
 
-    <!-- ৪. সার্চ এবং ভিউ (কনটেন্টের ঠিক উপরে) -->
+    <!-- ৪. সার্চ এবং ভিউ -->
     <div class="search-and-view" style="margin-bottom: 20px;">
         <div class="search-wrapper">
             <input type="text" id="searchInput" placeholder="🔍 Search notes, #tags, or links...">
@@ -153,14 +151,14 @@
 <!-- ৬. এডিট মোডাল -->
 <div id="editModal" class="custom-modal" style="display: none;">
     <div class="modal-content">
-        <span class="close-modal">&times;</span>
+        <span class="close-modal" onclick="document.getElementById('editModal').style.display='none'">&times;</span>
         <h3>Edit Note</h3>
         <textarea id="editNoteInput" rows="5" style="width: 100%; margin: 10px 0; padding: 10px;"></textarea>
         <button id="updateNoteBtn" class="btn btn-primary">Update Note</button>
     </div>
 </div>
 
-<!-- ৭. কনটেক্সট মেনু (রাইট ক্লিক) -->
+<!-- ৭. কনটেক্সট মেনু -->
 <div id="contextMenu" class="context-menu" style="display: none;">
     <ul>
         <li id="ctx-edit">✏️ Edit</li>
@@ -177,7 +175,6 @@
     <div class="modal-content share-content">
         <span class="close-modal" onclick="document.getElementById('shareModal').style.display='none'">&times;</span>
         <h3 style="margin-bottom:15px;">Share via</h3>
-        
         <div class="share-options" style="display: flex; flex-direction: column; gap: 10px;">
             <button id="share-wa" style="padding:10px; border:none; border-radius:5px; background: #25D366; color: white; cursor:pointer;">📱 WhatsApp</button>
             <button id="share-fb" style="padding:10px; border:none; border-radius:5px; background: #1877F2; color: white; cursor:pointer;">📘 Facebook</button>
@@ -198,20 +195,25 @@
             </div>
             <button id="closeReadModalBtn" class="read-close-btn">&times;</button>
         </div>
-        <div id="readModalContent" class="read-content">
-            <!-- Note content will be injected here by JavaScript -->
-        </div>
+        <div id="readModalContent" class="read-content"></div>
     </div>
 </div>
 
-<!-- স্ক্রিপ্টস -->
-<script type="module" src="js/firebase-config.js"></script>
-<script type="module" src="js/dashboard.js"></script>
+<!-- ============================================== -->
+<!-- 👇 স্ক্রিপ্ট সেকশন (আপডেট করা হয়েছে) -->
+<!-- ============================================== -->
+
+<!-- ১. মেইন অ্যাপ্লিকেশন লজিক (এটি অটোমেটিক ফায়ারবেস লোড করবে) -->
+<script type="module" src="js/dashboard-core/main.js"></script>
+
+<!-- ২. অন্যান্য মডিউল -->
 <script type="module" src="js/profile-manager.js"></script>
+
+<!-- ৩. UI এবং ইউটিলিটি স্ক্রিপ্ট -->
 <script src="js/footer.js"></script>
 <script src="js/dark-mode.js"></script>
-<script src="js/view-manager.js"></script> 
 <script src="js/menu-manager.js"></script>
+<script src="js/view-manager.js"></script>
 
 </body>
 </html>
