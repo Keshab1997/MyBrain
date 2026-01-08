@@ -30,7 +30,10 @@ gap: 15px;
 padding-bottom: 10px;
 border-bottom: 1px solid #f3f4f6;
 margin-bottom: 10px;
-overflow-x: auto; /* মোবাইলে স্ক্রল করার জন্য */
+overflow: visible !important; /* 🔥 ড্রপডাউন যাতে কেটে না যায় */
+flex-wrap: wrap; /* মোবাইলে আইটেমগুলো নিচে নামবে */
+z-index: 100;
+position: relative;
 }
 
 .rich-toolbar button {
@@ -40,11 +43,84 @@ border-radius: 6px;
 transition: 0.2s;
 color: #6b7280;
 flex-shrink: 0;
+border: none;
+background: transparent;
+cursor: pointer;
 }
 
 .rich-toolbar button:hover {
 background-color: #f3f4f6;
 color: #2563eb;
+}
+
+/* =========================================
+🔥 AI Dropdown Styles (Fixed)
+========================================= */
+
+.ai-dropdown {
+    position: relative;
+    display: inline-block;
+}
+
+/* AI বাটন স্টাইল (Purple Gradient) */
+#btn-ai {
+    background: linear-gradient(135deg, #6366f1, #8b5cf6);
+    border: none;
+    color: white;
+    padding: 6px 16px;
+    border-radius: 20px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-weight: 600;
+    font-size: 13px;
+    box-shadow: 0 2px 5px rgba(99, 102, 241, 0.3);
+    transition: all 0.2s ease;
+    cursor: pointer;
+}
+
+#btn-ai:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 10px rgba(99, 102, 241, 0.5);
+    color: white !important;
+}
+
+/* ড্রপডাউন মেনু */
+#ai-menu {
+    display: none;
+    position: absolute;
+    top: 110%;
+    left: 0;
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+    width: 180px;
+    z-index: 9999;
+    overflow: hidden;
+    animation: slideDown 0.2s ease;
+}
+
+.ai-option {
+    padding: 12px 15px;
+    cursor: pointer;
+    font-size: 14px;
+    color: #374151;
+    border-bottom: 1px solid #f9fafb;
+    transition: background 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.ai-option:hover {
+    background-color: #eff6ff;
+    color: #2563eb;
+}
+
+@keyframes slideDown {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
 }
 
 /* Textarea */
@@ -532,7 +608,19 @@ column-count: 1 !important;
     .view-toggles {
         align-self: flex-end;
     }
-}px; color: #9ca3af; font-weight: 500; }
+    
+    /* 🔥 মোবাইলে AI ড্রপডাউন ফিক্স */
+    .rich-toolbar {
+        overflow: visible !important;
+        flex-wrap: wrap;
+    }
+    
+    #ai-menu {
+        left: auto;
+        right: 0;
+        width: 200px;
+    }
+}
 
 .delete-btn { color: #9ca3af; font-size: 18px; padding: 0 5px; transition: 0.2s; }
 .delete-btn:hover { color: #1f2937; }
@@ -591,96 +679,3 @@ column-count: 1 !important;
 /* =========================================
 AI Dropdown & Toolbar Styles (New)
 ========================================= */
-
-/* ড্রপডাউন কন্টেইনার */
-.ai-dropdown {
-    position: relative;
-    display: inline-block;
-}
-
-/* AI বাটন স্টাইল */
-#btn-ai {
-    background: linear-gradient(135deg, #6366f1, #8b5cf6);
-    border: none;
-    cursor: pointer;
-    font-size: 13px;
-    color: white;
-    padding: 6px 12px;
-    border-radius: 20px; /* গোল শেপ */
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    font-weight: 600;
-    transition: all 0.2s ease;
-    box-shadow: 0 2px 5px rgba(99, 102, 241, 0.2);
-    white-space: nowrap;
-}
-
-#btn-ai:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 4px 8px rgba(99, 102, 241, 0.4);
-}
-
-#btn-ai:active {
-    transform: translateY(0);
-}
-
-/* ড্রপডাউন মেনু (সুন্দর পজিশনিং) */
-#ai-menu {
-    display: none;
-    position: absolute;
-    top: 120%; /* বাটন থেকে একটু নিচে */
-    left: 0;
-    background: #ffffff;
-    border: 1px solid #f3f4f6;
-    border-radius: 12px;
-    box-shadow: 0 10px 25px rgba(0,0,0,0.15);
-    width: 180px; /* ফিক্সড চওড়া */
-    z-index: 1000;
-    overflow: hidden;
-    animation: slideDown 0.2s ease;
-}
-
-/* মেনু আইটেম */
-.ai-option {
-    padding: 10px 15px;
-    cursor: pointer;
-    font-size: 14px;
-    color: #374151;
-    border-bottom: 1px solid #f9fafb;
-    transition: background 0.2s;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
-
-.ai-option:last-child {
-    border-bottom: none;
-}
-
-.ai-option:hover {
-    background-color: #eff6ff;
-    color: #2563eb;
-}
-
-/* এনিমেশন */
-@keyframes slideDown {
-    from { opacity: 0; transform: translateY(-10px); }
-    to { opacity: 1; transform: translateY(0); }
-}
-
-/* মোবাইল ফিক্স (Mobile Responsive) */
-@media (max-width: 600px) {
-    /* মোবাইলে মেনু যাতে কেটে না যায় */
-    #ai-menu {
-        left: auto;
-        right: -50px; /* ডানদিকে চাপানো */
-        width: 200px;
-    }
-    
-    /* টুলবার স্ক্রল ফিক্স */
-    .rich-toolbar {
-        overflow-x: visible !important; /* ড্রপডাউন দেখার জন্য */
-        flex-wrap: wrap; /* আইকনগুলো নিচে নামবে */
-    }
-}
