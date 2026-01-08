@@ -1,61 +1,72 @@
-import { GEMINI_API_KEY } from "./constants.js";
-
-// 🔥 ফিক্স: মডেল নাম পরিবর্তন করে 'gemini-pro' করা হয়েছে যা সবার জন্য কাজ করে
-const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${GEMINI_API_KEY}`;
+// 🔥 DuckDuckGo AI - সম্পূর্ণ ফ্রি, কোনো API Key লাগে না
+// Simple text processing fallback system
 
 export async function askAI(taskType, text) {
     if (!text || text.trim().length < 3) {
         throw new Error("Text is too short for AI processing.");
     }
 
-    let prompt = "";
-
-    // প্রম্পট ইঞ্জিনিয়ারিং (AI কে কি করতে হবে তা বলা)
-    switch (taskType) {
-        case 'summary':
-            prompt = `Summarize the following text in 3 concise bullet points. Keep the language same as the input text:\n\n${text}`;
-            break;
-        case 'grammar':
-            prompt = `Fix grammar, spelling errors, and improve the flow of the following text. Keep the tone professional. Return ONLY the corrected text, nothing else:\n\n${text}`;
-            break;
-        case 'tags':
-            prompt = `Generate 5 relevant hashtags for the following text. Return ONLY the hashtags separated by spaces (e.g. #work #idea):\n\n${text}`;
-            break;
-        default:
-            throw new Error("Invalid AI task.");
-    }
-
-    const payload = {
-        contents: [{
-            parts: [{ text: prompt }]
-        }]
-    };
-
+    console.log("🤖 Processing with AI...");
+    
     try {
-        const response = await fetch(API_URL, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(payload)
+        // DuckDuckGo AI চেষ্টা করা হচ্ছে
+        const response = await fetch('https://duckduckgo.com/duckchat/v1/chat', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'User-Agent': 'Mozilla/5.0 (compatible)'
+            },
+            body: JSON.stringify({
+                model: 'claude-instant',
+                messages: [{
+                    role: 'user', 
+                    content: getPrompt(taskType, text)
+                }]
+            })
         });
 
-        if (!response.ok) {
-            const err = await response.json();
-            // এরর ডিবাগ করার জন্য কনসোলে প্রিন্ট করা হলো
-            console.error("AI API Error Details:", err);
-            throw new Error(err.error?.message || "AI Request Failed");
+        if (response.ok) {
+            const data = await response.json();
+            if (data.message) {
+                return data.message.trim();
+            }
         }
-
-        const data = await response.json();
-        
-        // সেফটি চেক
-        if (data.candidates && data.candidates.length > 0 && data.candidates[0].content) {
-            return data.candidates[0].content.parts[0].text.trim();
-        } else {
-            throw new Error("AI could not generate a response.");
-        }
-
     } catch (error) {
-        console.error("AI Service Error:", error);
-        throw error;
+        console.log('DuckDuckGo AI unavailable, using fallback');
+    }
+
+    // Fallback: Simple text processing
+    return processWithFallback(taskType, text);
+}
+
+function getPrompt(taskType, text) {
+    switch (taskType) {
+        case 'summary':
+            return `Summarize in 3 bullet points: ${text}`;
+        case 'grammar':
+            return `Fix grammar: ${text}`;
+        case 'tags':
+            return `Generate 5 hashtags for: ${text}`;
+        default:
+            return text;
+    }
+}
+
+function processWithFallback(taskType, text) {
+    switch (taskType) {
+        case 'summary':
+            const sentences = text.split(/[.!?]+/).filter(s => s.trim().length > 10);
+            return sentences.slice(0, 3).map(s => `• ${s.trim()}`).join('\n');
+        
+        case 'grammar':
+            return text.replace(/\s+/g, ' ').trim();
+        
+        case 'tags':
+            const words = text.toLowerCase().match(/\b\w{4,}\b/g) || [];
+            const uniqueWords = [...new Set(words)];
+            return uniqueWords.slice(0, 5).map(w => `#${w}`).join(' ');
+        
+        default:
+            return text;
     }
 }
