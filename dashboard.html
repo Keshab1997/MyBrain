@@ -106,7 +106,8 @@
         <div class="action-icons">
             <span class="action-icon" id="triggerFile" title="Add Image" style="cursor:pointer; font-size:1.2rem;">📷</span>
         </div>
-        <input type="file" id="fileInput" accept="image/*" hidden>
+        <!-- Hidden attribute removed, using style display:none for better WebView compatibility -->
+        <input type="file" id="fileInput" accept="image/*" style="display: none;">
         <button id="saveBtn" class="btn btn-primary">Save to Brain</button>
     </div>
     <p id="uploadStatus" style="display:none; color: green; font-size: 12px; margin-top:5px;">Uploading...</p>

@@ -30,6 +30,7 @@ gap: 15px;
 padding-bottom: 10px;
 border-bottom: 1px solid #f3f4f6;
 margin-bottom: 10px;
+overflow-x: auto; /* মোবাইলে স্ক্রল করার জন্য */
 }
 
 .rich-toolbar button {
@@ -38,6 +39,7 @@ padding: 5px 10px;
 border-radius: 6px;
 transition: 0.2s;
 color: #6b7280;
+flex-shrink: 0;
 }
 
 .rich-toolbar button:hover {
@@ -225,11 +227,13 @@ gap: 15px;
 flex-grow: 1;
 justify-content: flex-end; /* ডানদিকে চাপানো */
 max-width: 600px; /* সার্চ বার খুব বেশি বড় হবে না */
+flex-wrap: wrap; /* মোবাইলে র্যাপ করবে */
 }
 
 .search-wrapper {
 flex-grow: 1;
 position: relative;
+min-width: 200px; /* মোবাইলে খুব ছোট হবে না */
 }
 
 #searchInput {
@@ -336,13 +340,14 @@ cursor: pointer; transition: 0.2s; flex-shrink: 0; margin-left: 10px;
 .add-folder-btn:hover { background: #2563eb; color: white; border-color: #2563eb; border-style: solid; }
 
 /* ==================================================
-৩. সিলেকশন কন্ট্রোলস
+৩. সিলেকশন কন্ট্রোলস (Mobile Fix)
 ================================================== */
 #selection-controls {
 display: none;
 gap: 10px;
 align-items: center;
 margin-left: 10px;
+flex-wrap: wrap; /* মোবাইলে বাটনগুলো নিচে নামতে পারে */
 }
 
 .select-action-btn {
@@ -353,6 +358,7 @@ font-weight: 600;
 cursor: pointer;
 font-size: 13px;
 transition: 0.2s;
+white-space: nowrap;
 }
 
 .btn-select-mode { background: #f3f4f6; color: #374151; }
@@ -453,6 +459,80 @@ margin-top: 10px;
 padding-top: 10px; border-top: 1px solid #f3f4f6;
 }
 .card-date { font-size: 10px; color: #9ca3af; font-weight: 500; }
+
+.delete-btn { color: #9ca3af; font-size: 18px; padding: 0 5px; transition: 0.2s; }
+.delete-btn:hover { color: #1f2937; }
+
+/* List View Style */
+.masonry-grid.list-view {
+display: flex;
+flex-direction: column;
+max-width: 900px;
+margin: 0 auto;
+column-count: 1 !important;
+}
+.masonry-grid.list-view .note-card { margin-bottom: 15px; }
+
+/* ==================================================
+৫. অন্যান্য সেকশন
+================================================== */
+.section-title { font-size: 15px; color: #65676b; margin: 20px 0 10px 5px; font-weight: 700; display: flex; align-items: center; gap: 5px; }
+.section-divider { border: 0; border-top: 1px solid #e1e3e8; margin: 20px 0; }
+
+/* মোডাল স্টাইল */
+.custom-modal { position: fixed; z-index: 3000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; backdrop-filter: blur(3px); }
+.modal-content { background-color: #fff; padding: 20px; border-radius: 12px; width: 90%; max-width: 450px; position: relative; box-shadow: 0 10px 30px rgba(0,0,0,0.15); animation: slideIn 0.2s ease; }
+@keyframes slideIn { from { transform: translateY(10px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+.close-modal { position: absolute; right: 15px; top: 10px; font-size: 24px; color: #aaa; cursor: pointer; }
+.close-modal:hover { color: #000; }
+
+/* রিডিং মোডাল */
+.read-modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.6); z-index: 3500; justify-content: center; align-items: center; backdrop-filter: blur(5px); }
+.read-modal-paper { background: #fff; width: 90%; max-width: 700px; height: 85vh; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.3); display: flex; flex-direction: column; overflow: hidden; position: relative; animation: slideUp 0.3s ease-out; }
+@keyframes slideUp { from { transform: translateY(50px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+.read-header { padding: 12px 20px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; background: #f9f9f9; }
+.read-meta { font-size: 12px; color: #666; display: flex; gap: 10px; align-items: center; }
+.read-badge { background: #e0e7ff; color: #4338ca; padding: 2px 8px; border-radius: 10px; font-weight: 500; }
+.read-close-btn { background: none; border: none; font-size: 24px; cursor: pointer; color: #555; }
+.read-content { padding: 25px; overflow-y: auto; font-family: 'Georgia', serif; font-size: 17px; line-height: 1.7; color: #2d2d2d; flex: 1; }
+.read-content img { max-width: 100%; border-radius: 8px; margin: 15px 0; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+
+/* শেয়ার মোডাল */
+.share-content { display: flex; flex-direction: column; align-items: center; padding: 20px; }
+.share-options { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; width: 100%; max-width: 350px; }
+.share-options button { padding: 10px; border: none; border-radius: 6px; font-size: 14px; font-weight: 500; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; transition: transform 0.1s; }
+.share-options button:hover { transform: translateY(-2px); }
+
+/* কনটেক্সট মেনু */
+.context-menu { position: absolute; background: white; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.15); width: 150px; z-index: 9999; overflow: hidden; border: 1px solid #e1e3e8; animation: fadeIn 0.1s ease; display: none; }
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+.context-menu ul { list-style: none; margin: 0; padding: 0; }
+.context-menu li { padding: 8px 12px; cursor: pointer; font-size: 13px; color: #1c1e21; border-bottom: 1px solid #f7f8fa; display: flex; align-items: center; gap: 8px; }
+.context-menu li:last-child { border-bottom: none; }
+.context-menu li:hover { background-color: #f0f2f5; }
+
+.drag-handle { cursor: grab; color: #ccc; font-size: 16px; padding: 5px; position: absolute; top: 5px; left: 5px; z-index: 10; touch-action: none; }
+.drag-handle:active { cursor: grabbing; color: #1877f2; }
+
+/* Mobile Specific Fixes */
+@media (max-width: 768px) {
+    .search-and-view {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    .search-wrapper {
+        width: 100%;
+    }
+    #selection-controls {
+        width: 100%;
+        justify-content: space-between;
+        margin-left: 0;
+        margin-top: 10px;
+    }
+    .view-toggles {
+        align-self: flex-end;
+    }
+}px; color: #9ca3af; font-weight: 500; }
 
 .delete-btn { color: #9ca3af; font-size: 18px; padding: 0 5px; transition: 0.2s; }
 .delete-btn:hover { color: #1f2937; }

@@ -32,6 +32,12 @@ export async function openContextMenu(e, id) {
     let x = e.pageX;
     let y = e.pageY;
 
+    // টাচ ইভেন্ট থেকে কো-অর্ডিনেট নেওয়া (যদি মাউস না হয়)
+    if (e.type === 'touchstart' || e.touches) {
+        x = e.touches[0].pageX;
+        y = e.touches[0].pageY;
+    }
+
     // ডানদিকে জায়গা না থাকলে বামে সরাও
     if (x + menuWidth > screenWidth) {
         x = x - menuWidth;
@@ -46,9 +52,6 @@ export async function openContextMenu(e, id) {
     menu.style.left = `${x}px`; 
     menu.style.display = 'block';
 }
-
-// ... বাকি কোড (openReadModal, setupModals, shareLink, downloadNoteContent) আগের মতোই থাকবে ...
-// (নিচে পুরো ফাইলের বাকি অংশ দেওয়া হলো না কারণ শুধু উপরের ফাংশনটিই পরিবর্তন করতে হবে)
 
 // ==================================================
 // ২. রিডিং মোডাল ওপেন
@@ -163,19 +166,27 @@ export function setupModals() {
     });
 
 
-    // --- D. ক্লোজ বাটন এবং আউটসাইড ক্লিক ---
+    // --- D. ক্লোজ বাটন এবং আউটসাইড ক্লিক (মোবাইল ফিক্স সহ) ---
     document.getElementById('closeReadModalBtn')?.addEventListener('click', () => readModal.style.display = 'none');
     document.querySelector('#shareModal .close-modal')?.addEventListener('click', () => shareModal.style.display = 'none');
     document.querySelector('#editModal .close-modal')?.addEventListener('click', () => editModal.style.display = 'none');
 
-    window.addEventListener('click', (e) => {
-        if(contextMenu && !contextMenu.contains(e.target) && !e.target.classList.contains('delete-btn') && !e.target.classList.contains('context-trigger')) {
-            contextMenu.style.display = 'none';
+    // ডেস্কটপ ক্লিক
+    window.addEventListener('click', (e) => handleOutsideClick(e));
+    
+    // মোবাইল টাচ (মেনু বন্ধ করার জন্য)
+    window.addEventListener('touchstart', (e) => handleOutsideClick(e), {passive: true});
+
+    function handleOutsideClick(e) {
+        if(contextMenu && contextMenu.style.display === 'block') {
+            if (!contextMenu.contains(e.target) && !e.target.classList.contains('delete-btn') && !e.target.classList.contains('context-trigger')) {
+                contextMenu.style.display = 'none';
+            }
         }
         if (e.target === readModal) readModal.style.display = 'none';
         if (e.target === editModal) editModal.style.display = 'none';
         if (e.target === shareModal) shareModal.style.display = 'none';
-    });
+    }
 }
 
 // ==================================================
@@ -219,13 +230,10 @@ async function shareLink(platform) {
 function downloadNoteContent(data) {
     try {
         if (data.type === 'image' && data.fileUrl) {
-            // Cloudinary থেকে ফোর্স ডাউনলোড করার জন্য URL মডিফাই করা
             let downloadUrl = data.fileUrl;
             if(downloadUrl.includes('cloudinary.com') && downloadUrl.includes('/upload/')) {
                 downloadUrl = downloadUrl.replace('/upload/', '/upload/fl_attachment/');
             }
-            
-            // নতুন ট্যাবে ওপেন করে ডাউনলোড ফোর্স করা
             const a = document.createElement('a');
             a.href = downloadUrl;
             a.download = 'mybrain_image.jpg';
@@ -235,7 +243,6 @@ function downloadNoteContent(data) {
             document.body.removeChild(a);
         } 
         else {
-            // টেক্সট ফাইল ডাউনলোড
             const textContent = data.text || "Empty Note";
             const blob = new Blob([textContent], { type: 'text/plain' });
             const url = window.URL.createObjectURL(blob);
