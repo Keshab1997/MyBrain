@@ -5,6 +5,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>MyBrain Dashboard</title>
 
+<!-- PWA Manifest Link -->
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#2563eb">
+
 <!-- CSS লিংকসমূহ -->
 <link rel="stylesheet" href="css/global.css">
 <link rel="stylesheet" href="css/layout.css">
@@ -29,6 +33,11 @@
 
     <!-- ডান পাশের আইটেম -->
     <div class="nav-right">
+        <!-- Install Button (Hidden by default) -->
+        <button id="pwa-install-btn" class="btn-primary" style="display: none; padding: 5px 10px; font-size: 0.8rem; margin-right: 10px;">
+            📲 Install App
+        </button>
+
         <!-- ডার্ক মোড টগল -->
         <button id="theme-toggle" class="btn-icon" title="Toggle Dark Mode">🌙</button>
 
@@ -212,10 +221,54 @@
 <script src="js/dark-mode.js"></script>
 <script src="js/menu-manager.js"></script>
 <script src="js/view-manager.js"></script>
+
+<!-- PWA Logic Script -->
 <script>
-if ('serviceWorker' in navigator) {
-navigator.serviceWorker.register('sw.js');
-}
+    // ১. Service Worker Register
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('sw.js');
+    }
+
+    // ২. Install Button Logic
+    let deferredPrompt;
+    const installBtn = document.getElementById('pwa-install-btn');
+
+    window.addEventListener('beforeinstallprompt', (e) => {
+        e.preventDefault();
+        deferredPrompt = e;
+        installBtn.style.display = 'block';
+
+        installBtn.addEventListener('click', (e) => {
+            installBtn.style.display = 'none';
+            deferredPrompt.prompt();
+            deferredPrompt.userChoice.then((choiceResult) => {
+                deferredPrompt = null;
+            });
+        });
+    });
+
+    // ৩. Share Target Logic (সোশ্যাল মিডিয়া থেকে লিংক রিসিভ করার জন্য)
+    window.addEventListener('DOMContentLoaded', () => {
+        const parsedUrl = new URL(window.location);
+        const title = parsedUrl.searchParams.get('title');
+        const text = parsedUrl.searchParams.get('text');
+        const url = parsedUrl.searchParams.get('url');
+
+        const noteInput = document.getElementById('noteInput');
+        
+        if (noteInput) {
+            let content = '';
+            if (title) content += `**${title}**\n`;
+            if (text) content += `${text}\n`;
+            if (url) content += `${url}`;
+
+            if (content.trim() !== '') {
+                noteInput.value = content.trim();
+                // ফোকাস করুন যাতে ইউজার বুঝতে পারে
+                noteInput.focus();
+            }
+        }
+    });
 </script>
 </body>
 </html>
