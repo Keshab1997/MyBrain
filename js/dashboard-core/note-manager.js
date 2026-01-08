@@ -6,6 +6,8 @@ import * as Utils from "./utils.js";
 import { openContextMenu, openReadModal } from "./menu-manager.js"; 
 
 let unsubscribeNotes = null;
+let mediaRecorder = null;
+let audioChunks = [];
 
 // ==================================================
 // ১. নোট লোড করার লজিক
@@ -15,34 +17,30 @@ export function loadNotes(uid, filterType = 'All', filterValue = null) {
     const notesRef = collection(db, "notes");
     let q;
 
-    // UI এলিমেন্ট হ্যান্ডলিং
     const inputArea = document.querySelector('.input-area');
     const pinSection = document.getElementById('pinned-section');
     
-    // ট্র্যাশ ভিউতে ইনপুট এরিয়া লুকানো
     if(inputArea) inputArea.style.display = (filterType === 'trash') ? 'none' : 'block';
-    if(pinSection) pinSection.style.display = 'none'; // লোডিং এর শুরুতে পিন সেকশন হাইড
+    if(pinSection) pinSection.style.display = 'none'; 
 
     // কুয়েরি তৈরি
     if (filterType === 'trash') {
         q = query(notesRef, where("uid", "==", uid), where("status", "==", "trash"), orderBy("timestamp", "desc"));
     } else if (filterType === 'folder') {
-        loadPinnedNotes(uid); // ফোল্ডারেও পিন নোট দেখাবে
+        loadPinnedNotes(uid); 
         q = query(notesRef, where("uid", "==", uid), where("status", "==", "active"), where("folder", "==", filterValue), orderBy("timestamp", "desc"));
     } else if (filterType !== 'All' && filterType !== 'all') {
         loadPinnedNotes(uid);
         q = query(notesRef, where("uid", "==", uid), where("status", "==", "active"), where("type", "==", filterType), orderBy("timestamp", "desc"));
     } else {
-        loadPinnedNotes(uid); // 'All' ভিউতে পিন নোট দেখাবে
+        loadPinnedNotes(uid); 
         q = query(notesRef, where("uid", "==", uid), where("status", "==", "active"), orderBy("timestamp", "desc"));
     }
 
-    // পুরনো লিসেনার বন্ধ করা
     if (unsubscribeNotes) unsubscribeNotes();
 
     unsubscribeNotes = onSnapshot(q, (snapshot) => {
         contentGrid.innerHTML = "";
-        
         if(snapshot.empty) {
             let msg = filterType === 'trash' ? "Trash is empty 🗑️" : "No notes found.";
             contentGrid.innerHTML = `<p style="text-align:center; color:#999; margin-top:20px; width:100%;">${msg}</p>`;
@@ -51,7 +49,6 @@ export function loadNotes(uid, filterType = 'All', filterValue = null) {
 
         snapshot.forEach((docSnap) => {
             const data = docSnap.data();
-            // পিন করা নোট মেইন লিস্টে ডুপ্লিকেট দেখাবো না (যদি না ট্র্যাশ ভিউ হয়)
             if (filterType !== 'trash' && data.isPinned) return;
 
             const card = UI.createNoteCardElement(docSnap, filterType === 'trash', {
@@ -63,15 +60,11 @@ export function loadNotes(uid, filterType = 'All', filterValue = null) {
             contentGrid.appendChild(card);
         });
         
-        // সার্চ রেজাল্ট রিফ্রেশ করা
         const searchInput = document.getElementById('searchInput');
         if(searchInput && searchInput.value) searchInput.dispatchEvent(new Event('input'));
     });
 }
 
-// ==================================================
-// ২. পিন করা নোট লোড
-// ==================================================
 function loadPinnedNotes(uid) {
     const q = query(collection(db, "notes"), where("uid", "==", uid), where("isPinned", "==", true), where("status", "==", "active"));
     const pinSection = document.getElementById('pinned-section');
@@ -97,7 +90,7 @@ function loadPinnedNotes(uid) {
 }
 
 // ==================================================
-// ৩. নোট সেভ এবং ইমেজ হ্যান্ডলিং
+// ২. নোট সেভ, টুলবার এবং অডিও
 // ==================================================
 export function setupNoteSaving(user) {
     const saveBtn = document.getElementById('saveBtn');
@@ -109,9 +102,73 @@ export function setupNoteSaving(user) {
     const triggerFileBtn = document.getElementById('triggerFile');
     const removeImageBtn = document.getElementById('remove-image-btn');
 
-    let androidSharedImage = null;
+    // --- A. Rich Text Toolbar Setup ---
+    const toolbarHTML = `
+        <div class="rich-toolbar" style="display:flex; gap:10px; margin-bottom:10px; padding-bottom:5px; border-bottom:1px solid #eee;">
+            <button id="btn-bold" title="Bold" style="background:none; border:none; cursor:pointer; font-weight:bold;">B</button>
+            <button id="btn-italic" title="Italic" style="background:none; border:none; cursor:pointer; font-style:italic;">I</button>
+            <button id="btn-list" title="List" style="background:none; border:none; cursor:pointer;">📋</button>
+            <button id="btn-check" title="Checklist" style="background:none; border:none; cursor:pointer;">✅</button>
+            <button id="btn-mic" title="Record Audio" style="background:none; border:none; cursor:pointer; font-size:16px;">🎤</button>
+            <span id="recording-status" style="font-size:12px; color:red; display:none;">Recording...</span>
+        </div>
+    `;
+    
+    const inputArea = document.querySelector('.input-area');
+    if(inputArea && !document.querySelector('.rich-toolbar')) {
+        inputArea.insertBefore(new DOMParser().parseFromString(toolbarHTML, 'text/html').body.firstChild, noteInput);
+    }
 
-    // 📱 A. Android Interface (অ্যাপ থেকে ইমেজ রিসিভ)
+    const insertText = (before, after) => {
+        const start = noteInput.selectionStart;
+        const end = noteInput.selectionEnd;
+        const text = noteInput.value;
+        const selected = text.substring(start, end);
+        noteInput.value = text.substring(0, start) + before + selected + after + text.substring(end);
+        noteInput.focus();
+    };
+
+    document.getElementById('btn-bold')?.addEventListener('click', () => insertText('**', '**'));
+    document.getElementById('btn-italic')?.addEventListener('click', () => insertText('_', '_'));
+    document.getElementById('btn-list')?.addEventListener('click', () => insertText('\n- ', ''));
+    document.getElementById('btn-check')?.addEventListener('click', () => insertText('\n- [ ] ', ''));
+
+    // --- B. Voice Recorder Logic ---
+    const micBtn = document.getElementById('btn-mic');
+    const recStatus = document.getElementById('recording-status');
+    let isRecording = false;
+    let audioBlob = null;
+
+    micBtn?.addEventListener('click', async () => {
+        if (!isRecording) {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                mediaRecorder = new MediaRecorder(stream);
+                audioChunks = [];
+                
+                mediaRecorder.ondataavailable = event => audioChunks.push(event.data);
+                mediaRecorder.onstop = () => {
+                    audioBlob = new Blob(audioChunks, { type: 'audio/mp3' });
+                    saveBtn.innerText = "Save Audio Note";
+                };
+
+                mediaRecorder.start();
+                isRecording = true;
+                micBtn.style.color = "red";
+                recStatus.style.display = "inline";
+            } catch (e) {
+                alert("Microphone access denied!");
+            }
+        } else {
+            mediaRecorder.stop();
+            isRecording = false;
+            micBtn.style.color = "";
+            recStatus.style.display = "none";
+        }
+    });
+
+    // --- C. Image Handling ---
+    let androidSharedImage = null;
     window.receiveImageFromApp = (base64) => {
         try {
             androidSharedImage = Utils.base64DataToBlob(base64);
@@ -120,99 +177,95 @@ export function setupNoteSaving(user) {
                 previewContainer.style.display = 'block';
             }
             if(saveBtn) saveBtn.innerText = "Save Image from App";
-        } catch (e) {
-            console.error("Android Image Error:", e);
-        }
+        } catch (e) { console.error(e); }
     };
 
-    // 🖼️ B. Web Image Handling
-    
-    // ১. ক্যামেরা আইকনে ক্লিক করলে ফাইল ইনপুট ওপেন হবে
-    if(triggerFileBtn) {
-        triggerFileBtn.onclick = () => fileInput.click();
-    }
-
-    // ২. ফাইল সিলেক্ট করলে প্রিভিউ দেখাবে
+    if(triggerFileBtn) triggerFileBtn.onclick = () => fileInput.click();
     if(fileInput) {
         fileInput.onchange = (e) => {
             if(e.target.files[0]) {
                 const r = new FileReader();
-                r.onload = (ev) => { 
-                    imagePreview.src = ev.target.result; 
-                    previewContainer.style.display = 'block'; 
-                };
+                r.onload = (ev) => { imagePreview.src = ev.target.result; previewContainer.style.display = 'block'; };
                 r.readAsDataURL(e.target.files[0]);
             }
         };
     }
-
-    // ৩. ক্রস বাটনে ক্লিক করলে ইমেজ রিমুভ হবে
-    if(removeImageBtn) {
-        removeImageBtn.onclick = clearFileInput;
-    }
+    if(removeImageBtn) removeImageBtn.onclick = clearFileInput;
 
     function clearFileInput() {
-        fileInput.value = ""; 
-        androidSharedImage = null; 
+        fileInput.value = ""; androidSharedImage = null; audioBlob = null;
         previewContainer.style.display = 'none';
         saveBtn.innerText = "Save to Brain";
     }
 
-    // 💾 C. Save Button Logic
+    // --- D. Save Logic (FIXED & ROBUST) 🛠️ ---
     saveBtn.addEventListener('click', async () => {
         const rawText = noteInput.value;
         const file = fileInput.files[0];
         const targetFolder = document.getElementById('folderSelect')?.value || "General";
         const selectedColor = document.querySelector('input[name="noteColor"]:checked')?.value || "#ffffff";
 
-        if (!rawText && !file && !androidSharedImage) return alert("Empty note!");
+        if (!rawText && !file && !androidSharedImage && !audioBlob) return alert("Empty note!");
 
-        // UI আপডেট (লোডিং স্টেট)
-        saveBtn.disabled = true; 
-        saveBtn.innerText = "Processing...";
+        saveBtn.disabled = true; saveBtn.innerText = "Processing...";
         if(statusText) statusText.style.display = 'block';
         
         try {
             const text = Utils.normalizeUrl(rawText);
-            let fileUrl = null, type = 'text', linkMeta = {};
+            const tags = Utils.extractTags(text);
+            
+            // ডিফল্ট ভ্যালু null রাখা হলো (undefined নয়)
+            let fileUrl = null;
+            let type = 'text';
+            let linkMeta = {};
 
-            // ১. ছবি আপলোড (ফাইল অথবা অ্যান্ড্রয়েড)
-            if (file || androidSharedImage) {
+            // ১. অডিও আপলোড
+            if (audioBlob) {
+                saveBtn.innerText = "Uploading Audio...";
+                const data = await DBService.uploadToCloudinary(audioBlob);
+                if(data.secure_url) {
+                    fileUrl = data.secure_url;
+                    type = 'audio';
+                } else {
+                    throw new Error("Audio upload failed (No URL returned)");
+                }
+            }
+            // ২. ছবি আপলোড
+            else if (file || androidSharedImage) {
                 saveBtn.innerText = "Uploading Image...";
                 const data = await DBService.uploadToCloudinary(file || androidSharedImage);
-                fileUrl = data.secure_url;
-                type = 'image';
+                if(data.secure_url) {
+                    fileUrl = data.secure_url;
+                    type = 'image';
+                } else {
+                    throw new Error("Image upload failed (No URL returned)");
+                }
             } 
-            // ২. লিঙ্ক প্রিভিউ (যদি টেক্সট লিঙ্ক হয়)
+            // ৩. লিঙ্ক প্রিভিউ
             else if (Utils.isValidURL(text)) {
                 type = 'link';
-                // Instagram/Facebook এপিআই কল স্কিপ করা
                 if (!text.includes('instagram.com') && !text.includes('facebook.com')) {
                     saveBtn.innerText = "Fetching Preview...";
                     linkMeta = await Utils.getLinkPreviewData(text);
                 }
             }
 
-            // ৩. ডাটাবেসে সেভ
+            // ৪. ডাটাবেসে সেভ
             saveBtn.innerText = "Saving...";
             await DBService.addNoteToDB(user.uid, {
                 text, fileUrl, type, color: selectedColor, folder: targetFolder, 
+                tags: tags, 
                 status: 'active', isPinned: false, ...linkMeta
             });
 
-            // ৪. রিসেট
-            noteInput.value = ""; 
-            clearFileInput();
-            
-            // 'All' ট্যাবে ফিরে যাওয়া
+            noteInput.value = ""; clearFileInput();
             document.querySelector('.filter-btn[data-filter="all"]')?.click();
 
         } catch (e) { 
-            console.error(e);
+            console.error("Save Error:", e); 
             alert("Error: " + e.message); 
         } finally { 
-            saveBtn.disabled = false; 
-            saveBtn.innerText = "Save to Brain"; 
+            saveBtn.disabled = false; saveBtn.innerText = "Save to Brain"; 
             if(statusText) statusText.style.display = 'none';
         }
     });

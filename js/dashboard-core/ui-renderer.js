@@ -1,4 +1,5 @@
 import { getUniversalEmbedHTML } from "./utils.js";
+import { updateNoteContentDB } from "./firebase-service.js"; // চেকলিস্ট আপডেটের জন্য
 
 // Generate Note Card HTML Object
 export function createNoteCardElement(docSnap, isTrashView, callbacks) {
@@ -34,21 +35,27 @@ export function createNoteCardElement(docSnap, isTrashView, callbacks) {
     // 3. Content Generation
     let contentHTML = '';
     
-    const mediaEmbed = getUniversalEmbedHTML(data.text);
-    
-    if (mediaEmbed) {
-        contentHTML += mediaEmbed;
-        contentHTML += `<div style="text-align:right; margin-bottom:5px;"><a href="${data.text}" target="_blank" style="font-size:11px; color:#888; text-decoration:none;">🔗 Open Original Link</a></div>`;
-    } 
+    // A. Audio Player 🎤
+    if (data.type === 'audio' && data.fileUrl) {
+        contentHTML += `
+            <div style="margin-bottom:10px;">
+                <audio controls style="width:100%; height:35px;">
+                    <source src="${data.fileUrl}" type="audio/mpeg">
+                    Your browser does not support the audio element.
+                </audio>
+            </div>`;
+        if(data.text) contentHTML += generateTextHTML(data.text, id);
+    }
+    // B. Image
     else if (data.type === 'image' && (data.fileUrl || data.image)) {
         contentHTML += `<img src="${data.fileUrl || data.image}" loading="lazy" style="width:100%; border-radius: 8px; display:block; margin-bottom:5px;">`;
-        if(data.text) contentHTML += generateTextHTML(data.text);
+        if(data.text) contentHTML += generateTextHTML(data.text, id);
     } 
+    // C. Link Preview
     else if (data.type === 'link' && (data.title || data.metaTitle)) {
         const title = data.title || data.metaTitle || data.text;
         const img = data.image || data.metaImg;
         const domain = data.domain || data.metaDomain || 'Link';
-
         contentHTML += `
         <a href="${data.text}" target="_blank" style="text-decoration:none; color:inherit; display:block; border:1px solid rgba(0,0,0,0.1); border-radius:8px; overflow:hidden; background: rgba(255,255,255,0.6); transition: all 0.2s;">
             ${img ? `<div style="height:140px; background-image: url('${img}'); background-size: cover; background-position: center;"></div>` : ''}
@@ -58,19 +65,33 @@ export function createNoteCardElement(docSnap, isTrashView, callbacks) {
             </div>
         </a>`;
     } 
+    // D. Text / Checklist / Embed
     else {
-        contentHTML += generateTextHTML(data.text || '');
+        const mediaEmbed = getUniversalEmbedHTML(data.text);
+        if (mediaEmbed) {
+            contentHTML += mediaEmbed;
+            contentHTML += `<div style="text-align:right; margin-bottom:5px;"><a href="${data.text}" target="_blank" style="font-size:11px; color:#888; text-decoration:none;">🔗 Open Original Link</a></div>`;
+        } else {
+            contentHTML += generateTextHTML(data.text || '', id);
+        }
     }
 
-    // 4. Footer & Actions
-    contentHTML += `<div class="card-footer" style="display:flex; justify-content:space-between; align-items:center; margin-top:10px; padding-top:10px; border-top:1px solid #f0f0f0;">
+    // 4. Tags Display 🏷️
+    if (data.tags && data.tags.length > 0) {
+        contentHTML += `<div style="margin-top:8px; display:flex; flex-wrap:wrap; gap:5px;">`;
+        data.tags.forEach(tag => {
+            contentHTML += `<span style="background:rgba(0,0,0,0.05); color:#666; font-size:11px; padding:2px 6px; border-radius:4px;">#${tag}</span>`;
+        });
+        contentHTML += `</div>`;
+    }
+
+    // 5. Footer & Actions
+    contentHTML += `<div class="card-footer" style="display:flex; justify-content:space-between; align-items:center; margin-top:10px; padding-top:10px; border-top:1px solid rgba(0,0,0,0.05);">
         <small class="card-date" style="font-size:11px; color:#999;">${data.timestamp?.toDate().toLocaleDateString() || ''}</small>`;
 
     if (isTrashView) {
-        // ট্র্যাশ ভিউ-এর জন্য বাটন
         contentHTML += `<div class="trash-actions" style="display:flex; gap:10px;"></div>`; 
     } else {
-        // সাধারণ ভিউ-এর জন্য থ্রি-ডট বাটন
         contentHTML += `<button class="delete-btn context-trigger" style="background:none; border:none; cursor:pointer; font-size:20px; color:#666; padding:0 5px;">⋮</button>`;
     }
     contentHTML += `</div>`;
@@ -79,70 +100,101 @@ export function createNoteCardElement(docSnap, isTrashView, callbacks) {
     contentWrapper.innerHTML = contentHTML;
     card.appendChild(contentWrapper);
 
-    // 5. Event Listeners (DOM তৈরি হওয়ার পর)
+    // 6. Event Listeners
     
+    // Checklist Click Event (Interactive)
+    const checkboxes = card.querySelectorAll('.task-checkbox');
+    checkboxes.forEach(box => {
+        box.addEventListener('change', async (e) => {
+            e.stopPropagation();
+            const index = parseInt(e.target.dataset.index);
+            const isChecked = e.target.checked;
+            
+            // টেক্সট আপডেট লজিক
+            let lines = data.text.split('\n');
+            let currentLine = lines[index];
+            
+            if (isChecked) {
+                lines[index] = currentLine.replace('- [ ]', '- [x]');
+            } else {
+                lines[index] = currentLine.replace('- [x]', '- [ ]');
+            }
+            
+            const newText = lines.join('\n');
+            await updateNoteContentDB(id, newText);
+        });
+    });
+
     // Trash Actions
     if(isTrashView) {
         const actionsDiv = card.querySelector('.trash-actions');
         if(actionsDiv) {
-            const rBtn = document.createElement('button'); 
-            rBtn.innerHTML='♻️'; 
-            rBtn.title = "Restore";
-            rBtn.style.cssText = "background:none; border:none; cursor:pointer; font-size:16px;";
+            const rBtn = document.createElement('button'); rBtn.innerHTML='♻️'; 
             rBtn.onclick = (e) => { e.stopPropagation(); callbacks.onRestore(id); };
-            
-            const dBtn = document.createElement('button'); 
-            dBtn.innerHTML='❌'; 
-            dBtn.title = "Delete Forever";
-            dBtn.style.cssText = "background:none; border:none; cursor:pointer; font-size:16px; color:red;";
+            const dBtn = document.createElement('button'); dBtn.innerHTML='❌'; 
             dBtn.onclick = (e) => { e.stopPropagation(); callbacks.onDeleteForever(id); };
-            
-            actionsDiv.appendChild(rBtn); 
-            actionsDiv.appendChild(dBtn);
+            actionsDiv.appendChild(rBtn); actionsDiv.appendChild(dBtn);
         }
     } else {
-        // Context Menu Trigger (থ্রি-ডট বাটন)
         const ctxBtn = card.querySelector('.context-trigger');
         if(ctxBtn) {
-            // বাটন ক্লিক করলে মেনু ওপেন হবে
             ctxBtn.addEventListener('click', (e) => { 
-                e.stopPropagation(); // বাবলিং বন্ধ
-                e.preventDefault();
-                console.log("Menu Clicked for ID:", id); // ডিবাগিং এর জন্য
+                e.stopPropagation(); e.preventDefault();
                 callbacks.onContextMenu(e, id); 
             });
         }
-
-        // রাইট ক্লিক করলেও মেনু ওপেন হবে
         card.addEventListener('contextmenu', (e) => { 
-            e.preventDefault(); 
-            callbacks.onContextMenu(e, id); 
+            e.preventDefault(); callbacks.onContextMenu(e, id); 
         });
     }
 
-    // Read More Button
     const readMoreBtn = card.querySelector('.read-more-btn');
     if (readMoreBtn) {
         readMoreBtn.addEventListener('click', (e) => { 
-            e.stopPropagation(); 
-            callbacks.onRead(data, id); 
+            e.stopPropagation(); callbacks.onRead(data, id); 
         });
     }
 
     return card;
 }
 
-// Text Helper
-function generateTextHTML(text) {
+// Text Helper (Markdown + Checklist)
+function generateTextHTML(text, noteId) {
     if (!text) return "";
     
+    // Checklist Parsing
+    if (text.includes('- [ ]') || text.includes('- [x]')) {
+        let lines = text.split('\n');
+        let html = '<div class="checklist-container" style="text-align:left;">';
+        let hasChecklist = false;
+
+        lines.forEach((line, index) => {
+            if (line.trim().startsWith('- [ ]')) {
+                hasChecklist = true;
+                const content = line.replace('- [ ]', '').trim();
+                html += `<div style="display:flex; align-items:center; margin-bottom:4px;">
+                            <input type="checkbox" class="task-checkbox" data-index="${index}" style="margin-right:8px; cursor:pointer;">
+                            <span style="font-size:14px;">${content}</span>
+                         </div>`;
+            } else if (line.trim().startsWith('- [x]')) {
+                hasChecklist = true;
+                const content = line.replace('- [x]', '').trim();
+                html += `<div style="display:flex; align-items:center; margin-bottom:4px;">
+                            <input type="checkbox" class="task-checkbox" data-index="${index}" checked style="margin-right:8px; cursor:pointer;">
+                            <span style="font-size:14px; text-decoration:line-through; color:#999;">${content}</span>
+                         </div>`;
+            } else {
+                html += `<div style="margin-bottom:4px;">${marked.parse(line)}</div>`;
+            }
+        });
+        html += '</div>';
+        if(hasChecklist) return html;
+    }
+
+    // Normal Markdown
     let parsedText = text;
     if (typeof marked !== 'undefined') {
-        try {
-            parsedText = marked.parse(text);
-        } catch (e) {
-            console.error("Markdown parse error", e);
-        }
+        try { parsedText = marked.parse(text); } catch (e) { console.error(e); }
     }
 
     const tempDiv = document.createElement("div");

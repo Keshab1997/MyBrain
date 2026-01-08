@@ -1,22 +1,46 @@
-// firebase-service.js
 import { auth, db } from "../firebase-config.js"; 
-import { collection, addDoc, query, where, orderBy, serverTimestamp, deleteDoc, doc, updateDoc, writeBatch, getDocs, onSnapshot } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+import { collection, addDoc, query, where, orderBy, serverTimestamp, deleteDoc, doc, updateDoc, writeBatch, getDocs } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 import { CLOUDINARY_URL, CLOUDINARY_PRESET } from "./constants.js";
 
-// Cloudinary Upload
+// Cloudinary Upload (Audio & Image Support) - FIXED 🛠️
 export async function uploadToCloudinary(file) {
     const formData = new FormData();
     formData.append('file', file);
     formData.append('upload_preset', CLOUDINARY_PRESET); 
-    const res = await fetch(CLOUDINARY_URL, { method: 'POST', body: formData });
+    
+    // ডিফল্ট URL (ইমেজের জন্য)
+    let uploadUrl = CLOUDINARY_URL;
+
+    // যদি অডিও বা ভিডিও হয়, তবে URL পরিবর্তন করতে হবে
+    if (file.type.startsWith('audio/') || file.type.startsWith('video/')) {
+        formData.append('resource_type', 'video'); 
+        // URL এর 'image' অংশটি 'video' দিয়ে রিপ্লেস করা হচ্ছে
+        uploadUrl = uploadUrl.replace('/image/upload', '/video/upload');
+    }
+
+    const res = await fetch(uploadUrl, { method: 'POST', body: formData });
+    
+    if (!res.ok) {
+        const errData = await res.json();
+        throw new Error(errData.error?.message || "Upload failed");
+    }
+
     return await res.json();
 }
 
 // Add Note
 export async function addNoteToDB(uid, data) {
+    // ডাটা স্যানিটাইজেশন (undefined ভ্যালু রিমুভ করা)
+    const cleanData = { ...data };
+    Object.keys(cleanData).forEach(key => {
+        if (cleanData[key] === undefined) {
+            cleanData[key] = null; // undefined কে null করে দেওয়া হলো
+        }
+    });
+
     return await addDoc(collection(db, "notes"), {
         uid: uid,
-        ...data,
+        ...cleanData,
         timestamp: serverTimestamp()
     });
 }

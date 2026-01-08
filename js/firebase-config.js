@@ -1,6 +1,3 @@
-// js/firebase-config.js
-
-// ১. ইম্পোর্ট সেকশন
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { 
     getAuth, 
@@ -19,12 +16,10 @@ import {
     doc,
     deleteDoc,
     query,
-    where
+    where,
+    enableIndexedDbPersistence
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-// (Storage ইম্পোর্ট বাদ দেওয়া হয়েছে কারণ আমরা Cloudinary ব্যবহার করছি)
-
-// ২. কনফিগারেশন (তোমার দেওয়া তথ্য)
 const firebaseConfig = {
   apiKey: "AIzaSyDnXqLbGRyaOqP58edPaS5uut1dxDyDSQU",
   authDomain: "mybrain-1df31.firebaseapp.com",
@@ -35,29 +30,22 @@ const firebaseConfig = {
   measurementId: "G-JS89ND0VJR"
 };
 
-// ৩. ইনিশিয়ালাইজেশন
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
-// const storage = ... (বাদ দেওয়া হয়েছে)
 const provider = new GoogleAuthProvider();
 
-// ৪. এক্সপোর্ট
+// অফলাইন সাপোর্ট (যদি ব্রাউজার সাপোর্ট করে)
+enableIndexedDbPersistence(db).catch((err) => {
+    if (err.code == 'failed-precondition') {
+        console.log('Multiple tabs open, persistence can only be enabled in one tab at a a time.');
+    } else if (err.code == 'unimplemented') {
+        console.log('The current browser does not support all of the features required to enable persistence');
+    }
+});
+
 export { 
-    app, 
-    auth, 
-    db, 
-    // storage, (বাদ দেওয়া হয়েছে)
-    provider, 
-    signInWithPopup, 
-    signInWithRedirect, 
-    onAuthStateChanged, 
-    signOut,
-    collection, 
-    addDoc, 
-    getDocs,
-    doc,
-    deleteDoc,
-    query,
-    where
+    app, auth, db, provider, 
+    signInWithPopup, signInWithRedirect, onAuthStateChanged, signOut,
+    collection, addDoc, getDocs, doc, deleteDoc, query, where
 };

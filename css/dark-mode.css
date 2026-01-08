@@ -1,46 +1,92 @@
+/* css/dark-mode.css */
+
 :root {
-    --bg-color: #f4f4f9;
-    --card-bg: #ffffff;
-    --text-color: #333333;
-    --text-muted: #666666;
-    --border-color: #e0e0e0;
-    --input-bg: #ffffff;
-    --primary-color: #000000;
+    /* Light Mode (Default) */
+    --bg-body: #f3f4f6;
+    --bg-card: #ffffff;
+    --bg-input: #ffffff;
+    --bg-hover: #f9fafb;
+    
+    --text-main: #1f2937;
+    --text-muted: #6b7280;
+    
+    --border-color: #e5e7eb;
+    --shadow-color: rgba(0, 0, 0, 0.05);
+    
+    --primary-color: #2563eb;
+    --primary-hover: #1d4ed8;
 }
 
-/* ডার্ক মোড ক্লাস */
+/* Dark Mode Override */
 body.dark-mode {
-    --bg-color: #121212;
-    --card-bg: #1e1e1e;
-    --text-color: #e0e0e0;
+    /* Dark Mode Colors */
+    --bg-body: #121212;
+    --bg-card: #1e1e1e;
+    --bg-input: #2d2d2d;
+    --bg-hover: #333333;
+    
+    --text-main: #e0e0e0;
     --text-muted: #a0a0a0;
+    
     --border-color: #333333;
-    --input-bg: #2d2d2d;
-    --primary-color: #ffffff;
+    --shadow-color: rgba(0, 0, 0, 0.3);
+    
+    --primary-color: #3b82f6; /* ডার্ক মোডে একটু ব্রাইট ব্লু */
+    --primary-hover: #60a5fa;
 }
 
-/* ভেরিয়েবল অ্যাপ্লাই করা */
+/* Global Application */
 body {
-    background-color: var(--bg-color);
-    color: var(--text-color);
-    transition: background-color 0.3s, color 0.3s;
+    background-color: var(--bg-body);
+    color: var(--text-main);
+    transition: background-color 0.3s ease, color 0.3s ease;
 }
 
-.navbar, .input-area, .filter-btn, .view-btn {
-    background-color: var(--card-bg);
+/* Common Elements Fix */
+.navbar, 
+.input-area, 
+.note-card, 
+.folder-scroll-container, 
+.search-wrapper input,
+.view-toggles,
+.modal-content,
+.context-menu,
+.vault-input-area,
+.secret-card {
+    background-color: var(--bg-card) !important;
+    color: var(--text-main) !important;
+    border-color: var(--border-color) !important;
+}
+
+/* Inputs */
+textarea, 
+input[type="text"], 
+input[type="password"],
+.folder-dropdown {
+    background-color: var(--bg-input) !important;
+    color: var(--text-main) !important;
+    border-color: var(--border-color) !important;
+}
+
+/* Buttons & Chips */
+.filter-btn, 
+.folder-chip,
+.action-icon {
+    background-color: var(--bg-card);
+    color: var(--text-main);
     border-color: var(--border-color);
-    color: var(--text-color);
 }
 
-textarea, input[type="text"] {
-    background-color: var(--input-bg);
-    color: var(--text-color);
-    border-color: var(--border-color);
+.filter-btn:hover, 
+.folder-chip:hover,
+.action-icon:hover {
+    background-color: var(--bg-hover);
 }
 
-/* নোট কার্ডের স্টাইল (তোমার dashboard.js এ জেনারেট হওয়া কার্ডের ক্লাস) */
-.note-card {
-    background-color: var(--card-bg) !important;
-    color: var(--text-color) !important;
-    border: 1px solid var(--border-color);
+/* Active States */
+.filter-btn.active, 
+.folder-chip.active {
+    background-color: var(--primary-color) !important;
+    color: #ffffff !important;
+    border-color: var(--primary-color) !important;
 }

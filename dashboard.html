@@ -32,9 +32,9 @@
 
         <!-- মিনি প্রোফাইল -->
         <div id="nav-mini-profile" class="nav-mini-profile" style="display: none;">
-            <img id="nav-user-img" src="https://via.placeholder.com/40" alt="Profile" class="nav-avatar">
-            <span id="nav-user-name" class="nav-username">User</span>
-        </div>
+            <img id="nav-user-img" src="https://cdn-icons-png.flaticon.com/512/149/149071.png" alt="User" class="nav-avatar">
+    <span id="nav-user-name" class="nav-username">User</span>
+</div>
 
         <!-- হ্যামবার্গার বাটন -->
         <button id="mobile-menu-btn" class="hamburger-btn">☰</button>
@@ -214,6 +214,11 @@
 <script src="js/dark-mode.js"></script>
 <script src="js/menu-manager.js"></script>
 <script src="js/view-manager.js"></script>
+<script>
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('sw.js');
+  }
+</script>
 
 </body>
 </html>
