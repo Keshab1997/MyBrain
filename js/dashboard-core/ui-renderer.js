@@ -6,7 +6,7 @@ export function createNoteCardElement(docSnap, isTrashView, callbacks) {
     const data = docSnap.data();
     const id = docSnap.id;
     const card = document.createElement('div');
-    card.className = 'note-card'; 
+    card.className = 'note-card';
     card.setAttribute('data-id', id);
     if(data.color) card.style.backgroundColor = data.color;
 
@@ -34,7 +34,7 @@ export function createNoteCardElement(docSnap, isTrashView, callbacks) {
 
     // 3. Content Generation
     let contentHTML = '';
-    
+
     // A. Audio Player 🎤
     if (data.type === 'audio' && data.fileUrl) {
         contentHTML += `
@@ -51,8 +51,8 @@ export function createNoteCardElement(docSnap, isTrashView, callbacks) {
         contentHTML += `<img src="${data.fileUrl || data.image}" loading="lazy" style="width:100%; border-radius: 8px; display:block; margin-bottom:5px;">`;
         if(data.text) contentHTML += generateTextHTML(data.text, id);
     } 
-    // C. Link Preview
-    else if (data.type === 'link' && (data.title || data.metaTitle)) {
+    // C. Link Preview (General Links)
+    else if (data.type === 'link' && (data.title || data.metaTitle) && !getUniversalEmbedHTML(data.text)) {
         const title = data.title || data.metaTitle || data.text;
         const img = data.image || data.metaImg;
         const domain = data.domain || data.metaDomain || 'Link';
@@ -65,22 +65,31 @@ export function createNoteCardElement(docSnap, isTrashView, callbacks) {
             </div>
         </a>`;
     } 
-    // D. Text / Checklist / Embed
+    // D. Text / Checklist / Embed (YouTube, FB, Insta)
     else {
         const mediaEmbed = getUniversalEmbedHTML(data.text);
         if (mediaEmbed) {
+            // ১. ভিডিও প্লেয়ার
             contentHTML += mediaEmbed;
+            
+            // ২. ভিডিওর টাইটেল বা নাম (Name) - নতুন সংযোজন
+            const videoTitle = data.title || data.metaTitle;
+            if(videoTitle) {
+                contentHTML += `<div style="margin-top:10px; margin-bottom:5px; font-weight:600; font-size:15px; color:#1f2937; line-height:1.4;">${videoTitle}</div>`;
+            }
+
+            // ৩. অরিজিনাল লিংক বাটন
             contentHTML += `<div style="text-align:right; margin-bottom:5px;"><a href="${data.text}" target="_blank" style="font-size:11px; color:#888; text-decoration:none;">🔗 Open Original Link</a></div>`;
         } else {
             contentHTML += generateTextHTML(data.text || '', id);
         }
     }
 
-    // 4. Tags Display 🏷️
+    // 4. Tags Display 🏷️ (ভিডিও বা টেক্সটের নিচে ট্যাগ দেখাবে)
     if (data.tags && data.tags.length > 0) {
-        contentHTML += `<div style="margin-top:8px; display:flex; flex-wrap:wrap; gap:5px;">`;
+        contentHTML += `<div style="margin-top:8px; display:flex; flex-wrap:wrap; gap:5px; padding-top:5px; border-top:1px dashed rgba(0,0,0,0.05);">`;
         data.tags.forEach(tag => {
-            contentHTML += `<span style="background:rgba(0,0,0,0.05); color:#666; font-size:11px; padding:2px 6px; border-radius:4px;">#${tag}</span>`;
+            contentHTML += `<span style="background:rgba(0,0,0,0.05); color:#2563eb; font-size:11px; padding:2px 8px; border-radius:12px; font-weight:500;">#${tag}</span>`;
         });
         contentHTML += `</div>`;
     }
@@ -95,13 +104,13 @@ export function createNoteCardElement(docSnap, isTrashView, callbacks) {
         contentHTML += `<button class="delete-btn context-trigger" style="background:none; border:none; cursor:pointer; font-size:20px; color:#666; padding:0 5px;">⋮</button>`;
     }
     contentHTML += `</div>`;
-    
+
     const contentWrapper = document.createElement('div');
     contentWrapper.innerHTML = contentHTML;
     card.appendChild(contentWrapper);
 
     // 6. Event Listeners
-    
+
     // Checklist Click Event (Interactive)
     const checkboxes = card.querySelectorAll('.task-checkbox');
     checkboxes.forEach(box => {
@@ -161,7 +170,7 @@ export function createNoteCardElement(docSnap, isTrashView, callbacks) {
 // Text Helper (Markdown + Checklist)
 function generateTextHTML(text, noteId) {
     if (!text) return "";
-    
+
     // Checklist Parsing
     if (text.includes('- [ ]') || text.includes('- [x]')) {
         let lines = text.split('\n');
@@ -200,7 +209,7 @@ function generateTextHTML(text, noteId) {
     const tempDiv = document.createElement("div");
     tempDiv.innerHTML = parsedText;
     const plainText = tempDiv.textContent || "";
-    
+
     if (plainText.length > 250) {
         return `<div class="note-text" style="overflow:hidden; max-height:100px; mask-image: linear-gradient(180deg, #000 60%, transparent);">${parsedText}</div>
                 <button class="read-more-btn" style="color:#007bff; border:none; background:none; padding:0; cursor:pointer; font-size:13px; margin-top:5px; font-weight:bold;">Read More...</button>`;

@@ -1,25 +1,22 @@
-import { auth, db } from "../firebase-config.js"; 
+import { auth, db } from "../firebase-config.js";
 import { collection, addDoc, query, where, orderBy, serverTimestamp, deleteDoc, doc, updateDoc, writeBatch, getDocs } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 import { CLOUDINARY_URL, CLOUDINARY_PRESET } from "./constants.js";
 
-// Cloudinary Upload (Audio & Image Support) - FIXED 🛠️
+// Cloudinary Upload (Audio & Image Support)
 export async function uploadToCloudinary(file) {
     const formData = new FormData();
     formData.append('file', file);
-    formData.append('upload_preset', CLOUDINARY_PRESET); 
-    
-    // ডিফল্ট URL (ইমেজের জন্য)
+    formData.append('upload_preset', CLOUDINARY_PRESET);
+
     let uploadUrl = CLOUDINARY_URL;
 
-    // যদি অডিও বা ভিডিও হয়, তবে URL পরিবর্তন করতে হবে
     if (file.type.startsWith('audio/') || file.type.startsWith('video/')) {
         formData.append('resource_type', 'video'); 
-        // URL এর 'image' অংশটি 'video' দিয়ে রিপ্লেস করা হচ্ছে
         uploadUrl = uploadUrl.replace('/image/upload', '/video/upload');
     }
 
     const res = await fetch(uploadUrl, { method: 'POST', body: formData });
-    
+
     if (!res.ok) {
         const errData = await res.json();
         throw new Error(errData.error?.message || "Upload failed");
@@ -30,11 +27,10 @@ export async function uploadToCloudinary(file) {
 
 // Add Note
 export async function addNoteToDB(uid, data) {
-    // ডাটা স্যানিটাইজেশন (undefined ভ্যালু রিমুভ করা)
     const cleanData = { ...data };
     Object.keys(cleanData).forEach(key => {
         if (cleanData[key] === undefined) {
-            cleanData[key] = null; // undefined কে null করে দেওয়া হলো
+            cleanData[key] = null;
         }
     });
 
@@ -55,7 +51,7 @@ export async function deleteNoteForeverDB(id) {
 }
 
 export async function moveToTrashDB(id) {
-    await updateDoc(doc(db, "notes", id), { status: 'trash' });
+    await updateDoc(doc(db, "notes", id), { status: 'trash', trashDate: serverTimestamp() }); // trashDate যোগ করা হলো
 }
 
 export async function updateNoteContentDB(id, text) {
@@ -64,6 +60,50 @@ export async function updateNoteContentDB(id, text) {
 
 export async function togglePinDB(id, currentStatus) {
     await updateDoc(doc(db, "notes", id), { isPinned: !currentStatus });
+}
+
+// ==================================================
+// 🔥 নতুন ফিচার: ট্র্যাশ ক্লিনআপ এবং অটো ডিলিট
+// ==================================================
+
+// ১. সব ট্র্যাশ একসাথে ডিলিট করা (Empty Trash)
+export async function emptyTrashDB(uid) {
+    const batch = writeBatch(db);
+    const q = query(collection(db, "notes"), where("uid", "==", uid), where("status", "==", "trash"));
+    const snapshot = await getDocs(q);
+
+    snapshot.forEach((doc) => {
+        batch.delete(doc.ref);
+    });
+
+    await batch.commit();
+}
+
+// ২. ৭ দিনের পুরনো ট্র্যাশ অটো ডিলিট করা
+export async function cleanupOldTrashDB(uid) {
+    const q = query(collection(db, "notes"), where("uid", "==", uid), where("status", "==", "trash"));
+    const snapshot = await getDocs(q);
+    const batch = writeBatch(db);
+    let hasOldNotes = false;
+
+    const now = new Date();
+    const sevenDaysInMillis = 7 * 24 * 60 * 60 * 1000; // ৭ দিন
+
+    snapshot.forEach((docSnap) => {
+        const data = docSnap.data();
+        // যদি trashDate থাকে তবে সেটা চেক করবে, না থাকলে timestamp চেক করবে
+        const noteDate = data.trashDate ? data.trashDate.toDate() : data.timestamp?.toDate();
+        
+        if (noteDate && (now - noteDate) > sevenDaysInMillis) {
+            batch.delete(docSnap.ref);
+            hasOldNotes = true;
+        }
+    });
+
+    if (hasOldNotes) {
+        await batch.commit();
+        console.log("Auto-deleted old trash items.");
+    }
 }
 
 // Folder Logic

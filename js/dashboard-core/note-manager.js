@@ -3,14 +3,14 @@ import { collection, query, where, orderBy, onSnapshot } from "https://www.gstat
 import * as DBService from "./firebase-service.js";
 import * as UI from "./ui-renderer.js";
 import * as Utils from "./utils.js";
-import { openContextMenu, openReadModal } from "./menu-manager.js"; 
+import { openContextMenu, openReadModal } from "./menu-manager.js";
 
 let unsubscribeNotes = null;
 let mediaRecorder = null;
 let audioChunks = [];
 
 // ==================================================
-// ১. নোট লোড করার লজিক
+// ১. নোট লোড করার লজিক (আপডেট করা হয়েছে)
 // ==================================================
 export function loadNotes(uid, filterType = 'All', filterValue = null) {
     const contentGrid = document.getElementById('content-grid');
@@ -19,12 +19,15 @@ export function loadNotes(uid, filterType = 'All', filterValue = null) {
 
     const inputArea = document.querySelector('.input-area');
     const pinSection = document.getElementById('pinned-section');
-    
+
+    // ট্র্যাশ ভিউতে ইনপুট এরিয়া লুকানো থাকবে
     if(inputArea) inputArea.style.display = (filterType === 'trash') ? 'none' : 'block';
     if(pinSection) pinSection.style.display = 'none'; 
 
-    // কুয়েরি তৈরি
+    // কুয়েরি তৈরি
     if (filterType === 'trash') {
+        // ট্র্যাশে ঢোকার সাথে সাথে পুরনো নোট ক্লিনআপ চেক করবে
+        DBService.cleanupOldTrashDB(uid);
         q = query(notesRef, where("uid", "==", uid), where("status", "==", "trash"), orderBy("timestamp", "desc"));
     } else if (filterType === 'folder') {
         loadPinnedNotes(uid); 
@@ -41,9 +44,45 @@ export function loadNotes(uid, filterType = 'All', filterValue = null) {
 
     unsubscribeNotes = onSnapshot(q, (snapshot) => {
         contentGrid.innerHTML = "";
+
+        // 🔥 ট্র্যাশ হেডার (কাউন্ট এবং এম্পটি বাটন)
+        if (filterType === 'trash') {
+            const count = snapshot.size;
+            const trashHeader = document.createElement('div');
+            trashHeader.style.cssText = "width:100%; display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; padding:10px; background:#fff0f0; border-radius:8px; border:1px solid #ffcdd2;";
+            
+            trashHeader.innerHTML = `
+                <span style="color:#d32f2f; font-weight:bold;">🗑️ Trash (${count} items)</span>
+                ${count > 0 ? `<button id="emptyTrashBtn" style="background:#d32f2f; color:white; border:none; padding:6px 12px; border-radius:4px; cursor:pointer; font-size:13px;">Empty Trash</button>` : ''}
+            `;
+            
+            // অটো ডিলিট ওয়ার্নিং মেসেজ
+            const warning = document.createElement('p');
+            warning.style.cssText = "width:100%; text-align:center; font-size:11px; color:#888; margin-bottom:15px;";
+            warning.innerText = "Items in trash are automatically deleted after 7 days.";
+            
+            contentGrid.appendChild(trashHeader);
+            contentGrid.appendChild(warning);
+
+            // Empty Trash Button Event
+            setTimeout(() => {
+                const emptyBtn = document.getElementById('emptyTrashBtn');
+                if(emptyBtn) {
+                    emptyBtn.onclick = async () => {
+                        if(confirm("Are you sure you want to delete ALL items in trash permanently? This cannot be undone.")) {
+                            await DBService.emptyTrashDB(uid);
+                        }
+                    };
+                }
+            }, 0);
+        }
+
         if(snapshot.empty) {
-            let msg = filterType === 'trash' ? "Trash is empty 🗑️" : "No notes found.";
-            contentGrid.innerHTML = `<p style="text-align:center; color:#999; margin-top:20px; width:100%;">${msg}</p>`;
+            let msg = filterType === 'trash' ? "Trash is empty 😌" : "No notes found.";
+            const p = document.createElement('p');
+            p.style.cssText = "text-align:center; color:#999; margin-top:20px; width:100%;";
+            p.innerText = msg;
+            contentGrid.appendChild(p);
             return;
         }
 
@@ -113,7 +152,7 @@ export function setupNoteSaving(user) {
             <span id="recording-status" style="font-size:12px; color:red; display:none;">Recording...</span>
         </div>
     `;
-    
+
     const inputArea = document.querySelector('.input-area');
     if(inputArea && !document.querySelector('.rich-toolbar')) {
         inputArea.insertBefore(new DOMParser().parseFromString(toolbarHTML, 'text/html').body.firstChild, noteInput);
@@ -214,7 +253,6 @@ export function setupNoteSaving(user) {
             const text = Utils.normalizeUrl(rawText);
             const tags = Utils.extractTags(text);
             
-            // ডিফল্ট ভ্যালু null রাখা হলো (undefined নয়)
             let fileUrl = null;
             let type = 'text';
             let linkMeta = {};
