@@ -1,5 +1,5 @@
-// js/login.js
-import { auth, provider, signInWithPopup, signInWithRedirect, onAuthStateChanged } from "./firebase-config.js";
+// js/auth/login.js
+import { auth, provider, signInWithPopup, signInWithRedirect, onAuthStateChanged } from "../core/firebase-config.js";
 
 const loginBtn = document.getElementById('google-login-btn');
 

@@ -1,4 +1,4 @@
-import { auth, db } from "../firebase-config.js";
+import { auth, db } from "./firebase-config.js";
 import { collection, addDoc, query, where, orderBy, serverTimestamp, deleteDoc, doc, updateDoc, writeBatch, getDocs } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 import { CLOUDINARY_URL, CLOUDINARY_PRESET } from "./constants.js";
 

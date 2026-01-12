@@ -1,14 +1,18 @@
-const CACHE_NAME = 'mybrain-store-v1';
+const CACHE_NAME = 'mybrain-store-v2';
 
 // এখানে ফাইলের সঠিক পাথ দেওয়া হলো
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
   './dashboard.html',
-  './js/dashboard-core/main.js', // আগে ভুল ছিল
+  './vault.html',
   './css/global.css',
   './css/style-dash.css',
-  './css/style-login.css'
+  './css/style-login.css',
+  './css/style-vault.css',
+  './js/ui-shared.js',
+  './js/dashboard/main.js',
+  './js/core/firebase-config.js'
 ];
 
 self.addEventListener('install', (e) => {

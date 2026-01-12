@@ -1,5 +1,5 @@
-import { getUniversalEmbedHTML } from "./utils.js";
-import { updateNoteContentDB } from "./firebase-service.js";
+import { getUniversalEmbedHTML } from "../core/utils.js";
+import { updateNoteContentDB } from "../core/firebase-service.js";
 
 // Generate Note Card HTML Object
 export function createNoteCardElement(docSnap, isTrashView, callbacks) {

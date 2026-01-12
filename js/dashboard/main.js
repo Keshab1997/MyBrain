@@ -1,11 +1,11 @@
-// js/dashboard-core/main.js
-import { auth } from "../firebase-config.js";
+// js/dashboard/main.js
+import { auth } from "../core/firebase-config.js";
 import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
 // মডিউল ইমপোর্ট
 import { loadNotes, setupNoteSaving } from "./note-manager.js";
 import { setupFolders } from "./folder-manager.js";
-import { setupModals } from "./menu-manager.js";
+// setupModals removed as menu-manager.js is now part of ui-shared.js
 import { setupEventListeners } from "./event-manager.js";
 
 // অথেনটিকেশন চেকার
@@ -55,7 +55,7 @@ function initDashboard(user) {
         setupNoteSaving(user);            
         setupFolders(user.uid);           
         setupEventListeners(user);        
-        setupModals();                    
+        // setupModals(); // Removed - now handled by ui-shared.js
     } catch (error) {
         console.error("Error initializing modules:", error);
     }

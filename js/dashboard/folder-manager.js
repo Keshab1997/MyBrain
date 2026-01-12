@@ -1,7 +1,7 @@
 // js/dashboard-core/folder-manager.js
-import { db } from "../firebase-config.js";
+import { db } from "../core/firebase-config.js";
 import { collection, query, where, orderBy, onSnapshot } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-import * as DBService from "./firebase-service.js";
+import * as DBService from "../core/firebase-service.js";
 import { loadNotes } from "./note-manager.js"; // ফোল্ডারে ক্লিক করলে নোট লোড হবে
 
 let unsubscribeFolders = null;

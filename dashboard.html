@@ -16,10 +16,6 @@
 <link rel="stylesheet" href="css/style-dash.css">
 <link rel="stylesheet" href="css/footer.css">
 <link rel="stylesheet" href="css/dark-mode.css"> 
-
-<!-- লাইব্রেরি -->
-<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.0/Sortable.min.js"></script>
 </head>
 <body>
 <!-- ১. ন্যাভিগেশন বার -->
@@ -106,7 +102,6 @@
         <div class="action-icons">
             <span class="action-icon" id="triggerFile" title="Add Image" style="cursor:pointer; font-size:1.2rem;">📷</span>
         </div>
-        <!-- Hidden attribute removed, using style display:none for better WebView compatibility -->
         <input type="file" id="fileInput" accept="image/*" style="display: none;">
         <button id="saveBtn" class="btn btn-primary">Save to Brain</button>
     </div>
@@ -127,14 +122,14 @@
         
         <div class="search-and-view">
             <div class="search-wrapper">
-                <input type="text" id="searchInput" placeholder="🔍 Search notes, #tags, or links...">
+                <input type="text" id="searchInput" placeholder="🔍 Search...">
             </div>
             
             <!-- সিলেকশন কন্ট্রোলস -->
-            <div id="selection-controls">
+            <div id="selection-controls" style="display: flex; gap: 5px;">
                 <button id="toggleSelectModeBtn" class="select-action-btn btn-select-mode">Select</button>
                 <button id="selectAllBtn" class="select-action-btn btn-select-mode" style="display:none;">All</button>
-                <button id="deleteSelectedBtn" class="select-action-btn btn-delete-selected" style="display:none;">Delete (0)</button>
+                <button id="deleteSelectedBtn" class="select-action-btn btn-delete-selected" style="display:none;">Delete</button>
             </div>
 
             <div class="view-toggles">
@@ -151,8 +146,6 @@
         <button id="createFolderBtn" class="add-folder-btn" title="Create New Folder">+</button>
     </div>
 </div>
-
-
 
 <!-- ৫. কন্টেন্ট গ্রিড -->
 <div id="pinned-section" class="content-section" style="display:none;">
@@ -216,12 +209,18 @@
 </div>
 </div>
 
-<script type="module" src="js/dashboard-core/main.js"></script>
+<!-- ১. লাইব্রেরি -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.0/Sortable.min.js"></script>
+
+<!-- ২. অ্যাপ লজিক (পাথ আপডেট করা হয়েছে) -->
+<script type="module" src="js/dashboard/main.js"></script> 
 <script type="module" src="js/profile-manager.js"></script>
-<script src="js/footer.js"></script>
-<script src="js/dark-mode.js"></script>
-<script src="js/menu-manager.js"></script>
-<script src="js/view-manager.js"></script>
+
+<!-- ৩. UI এবং ইউটিলিটি (সব ছোট ফাইল এখন এক জায়গায়) -->
+<script src="js/ui-shared.js"></script>
 
 <!-- PWA Logic Script -->
 <script>
@@ -230,23 +229,25 @@
         navigator.serviceWorker.register('sw.js');
     }
 
-    // ২. Install Button Logic
+    // ২. Install Button Logic (FIXED)
     let deferredPrompt;
     const installBtn = document.getElementById('pwa-install-btn');
 
-    window.addEventListener('beforeinstallprompt', (e) => {
-        e.preventDefault();
-        deferredPrompt = e;
-        installBtn.style.display = 'block';
+    if (installBtn) {
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+            installBtn.style.display = 'block';
 
-        installBtn.addEventListener('click', (e) => {
-            installBtn.style.display = 'none';
-            deferredPrompt.prompt();
-            deferredPrompt.userChoice.then((choiceResult) => {
-                deferredPrompt = null;
+            installBtn.addEventListener('click', (e) => {
+                installBtn.style.display = 'none';
+                deferredPrompt.prompt();
+                deferredPrompt.userChoice.then((choiceResult) => {
+                    deferredPrompt = null;
+                });
             });
         });
-    });
+    }
 
     // ৩. Share Target Logic (সোশ্যাল মিডিয়া থেকে লিংক রিসিভ করার জন্য)
     window.addEventListener('DOMContentLoaded', () => {

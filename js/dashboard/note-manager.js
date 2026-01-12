@@ -1,9 +1,34 @@
-import { db, auth } from "../firebase-config.js";
+import { db, auth } from "../core/firebase-config.js";
 import { collection, query, where, orderBy, onSnapshot } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-import * as DBService from "./firebase-service.js";
+import * as DBService from "../core/firebase-service.js";
 import * as UI from "./ui-renderer.js";
-import * as Utils from "./utils.js";
-import { openContextMenu, openReadModal } from "./menu-manager.js";
+import * as Utils from "../core/utils.js";
+// import { openContextMenu, openReadModal } from "./menu-manager.js"; // Removed - now in ui-shared.js
+
+// Context Menu and Read Modal functions (moved from menu-manager.js)
+function openContextMenu(e, noteId) {
+    const contextMenu = document.getElementById('contextMenu');
+    if (contextMenu) {
+        contextMenu.style.display = 'block';
+        contextMenu.style.left = e.pageX + 'px';
+        contextMenu.style.top = e.pageY + 'px';
+        contextMenu.setAttribute('data-note-id', noteId);
+    }
+}
+
+function openReadModal(data, noteId) {
+    const readModal = document.getElementById('readModal');
+    const readContent = document.getElementById('readModalContent');
+    const readDate = document.getElementById('readModalDate');
+    const readFolder = document.getElementById('readModalFolder');
+    
+    if (readModal && readContent) {
+        readContent.innerHTML = data.text || 'No content';
+        if (readDate) readDate.textContent = data.timestamp?.toDate().toLocaleDateString() || 'Unknown date';
+        if (readFolder) readFolder.textContent = data.folder || 'General';
+        readModal.style.display = 'flex';
+    }
+}
 import { askAI } from "./ai-service.js"; // 🔥 AI Service Import
 
 let unsubscribeNotes = null;
@@ -16,6 +41,12 @@ let selectedNoteIds = new Set(); // 🔥 সিলেকশন স্টোর �
 // ==================================================
 export function loadNotes(uid, filterType = 'All', filterValue = null) {
     const contentGrid = document.getElementById('content-grid');
+    
+    // Safety Check: গ্রিড না পেলে কাজ বন্ধ
+    if (!contentGrid) {
+        console.error("Error: 'content-grid' ID not found in HTML");
+        return;
+    }
     const notesRef = collection(db, "notes");
     let q;
 
@@ -147,6 +178,12 @@ function setupSelectionLogic(uid, isTrash) {
     const toggleBtn = document.getElementById('toggleSelectModeBtn');
     const selectAllBtn = document.getElementById('selectAllBtn');
     const deleteSelectedBtn = document.getElementById('deleteSelectedBtn');
+
+    // Safety Check: যদি বাটন না থাকে, তাহলে ফাংশন থেকে বের হয়ে যাও
+    if (!toggleBtn || !selectAllBtn || !deleteSelectedBtn) {
+        console.warn('Selection buttons not found in HTML');
+        return;
+    }
 
     // 1. Toggle Selection Mode
     toggleBtn.onclick = () => {

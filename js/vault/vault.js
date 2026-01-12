@@ -1,6 +1,6 @@
-// js/vault.js (SECURE VERSION)
+// js/vault/vault.js (SECURE VERSION)
 
-import { db, auth } from './firebase-config.js';
+import { db, auth } from '../core/firebase-config.js';
 import { collection, addDoc, onSnapshot, query, where, orderBy, deleteDoc, doc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
