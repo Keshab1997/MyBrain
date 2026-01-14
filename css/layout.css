@@ -7,6 +7,7 @@
     position: sticky;
     top: 0;
     z-index: 1000;
+    width: 100%;
 }
 
 .nav-content-wrapper {
@@ -14,9 +15,10 @@
     justify-content: space-between;
     align-items: center;
     height: 100%;
-    padding: 0 20px;
+    padding: 0 15px;
     max-width: 1600px;
     margin: 0 auto;
+    width: 100%;
 }
 
 .nav-right {
@@ -46,23 +48,32 @@
 }
 
 .nav-links {
-    display: none;
-    position: absolute;
-    top: 70px;
-    right: 15px;
-    background: white;
-    border: 1px solid #e5e7eb;
-    border-radius: 15px;
-    padding: 10px;
-    min-width: 200px;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.15);
-    flex-direction: column;
-    gap: 5px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
 }
 
-.nav-links.active { 
-    display: flex;
-    animation: slideDown 0.2s ease;
+/* মোবাইলে ড্রপডাউন মেনু */
+@media (max-width: 768px) {
+    .nav-links {
+        display: none;
+        position: absolute;
+        top: 70px;
+        right: 15px;
+        background: white;
+        border: 1px solid #e5e7eb;
+        border-radius: 15px;
+        padding: 10px;
+        min-width: 200px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+        flex-direction: column;
+        gap: 5px;
+    }
+    
+    .nav-links.active { 
+        display: flex;
+        animation: slideDown 0.2s ease;
+    }
 }
 
 @keyframes slideDown {
@@ -77,19 +88,37 @@
 }
 
 .nav-item {
-    padding: 12px 15px;
+    padding: 10px 16px;
     text-decoration: none;
     color: #374151;
     font-weight: 600;
     border-radius: 10px;
     transition: 0.2s;
     display: block;
+    font-size: 14px;
+    white-space: nowrap;
 }
 
-.nav-item:hover,
-.nav-item.active { 
+.nav-item:hover { 
     background: #eff6ff;
     color: #2563eb;
+}
+
+.nav-item.active { 
+    background: #2563eb;
+    color: white;
+}
+
+/* মোবাইলে ভিন্ন স্টাইল */
+@media (max-width: 768px) {
+    .nav-item {
+        padding: 12px 15px;
+    }
+    
+    .nav-item.active { 
+        background: #eff6ff;
+        color: #2563eb;
+    }
 }
 
 .btn-install-sm {
@@ -111,17 +140,41 @@
     border-radius: 10px;
     font-weight: 600;
     cursor: pointer;
-    width: 100%;
     text-align: left;
     transition: 0.2s;
+    font-size: 14px;
+    white-space: nowrap;
 }
 
 .btn-logout-nav:hover {
     background: #ffe4e6;
 }
 
+/* মোবাইলে পুরো চওড়া */
+@media (max-width: 768px) {
+    .btn-logout-nav {
+        width: 100%;
+    }
+}
+
+.hamburger-btn {
+    display: none;
+    font-size: 24px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--text-main);
+}
+
+@media (max-width: 768px) {
+    .hamburger-btn {
+        display: block;
+    }
+}
+
 @media (max-width: 600px) {
     .logo-text { font-size: 18px; }
     .nav-avatar { width: 30px; height: 30px; }
-    .nav-content-wrapper { padding: 0 15px; }
+    .nav-content-wrapper { padding: 0 10px; }
+    .nav-right { gap: 8px; }
 }

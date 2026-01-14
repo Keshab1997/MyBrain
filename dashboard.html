@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>MyBrain Dashboard</title>
 
 <link rel="icon" href="https://img.icons8.com/fluency/48/brain.png" type="image/png">
@@ -31,6 +31,12 @@
     </div>
 
     <div class="nav-right">
+        <div class="nav-links" id="navLinks">
+            <a href="dashboard.html" class="nav-item active">📝 Notes</a>
+            <a href="vault.html" class="nav-item">🔐 Vault</a>
+            <button id="menu-logout-btn" class="btn-logout-nav">🚪 Logout</button>
+        </div>
+        
         <button id="pwa-install-btn" class="btn-install" style="display:none;">📲 Install</button>
         <button id="theme-toggle" class="btn-icon">🌙</button>
 
@@ -40,16 +46,6 @@
         </div>
 
         <button id="mobile-menu-btn" class="hamburger-btn">☰</button>
-
-        <div class="nav-links" id="navLinks">
-            <a href="dashboard.html" class="nav-item active">📝 Notes</a>
-            <a href="vault.html" class="nav-item">🔐 Vault</a>
-            <button id="menu-logout-btn" class="btn-logout-nav">🚪 Logout</button>
-        </div>
-
-        <button id="desktop-logout-btn" class="btn-logout">
-            <span class="menu-icon">🚪</span> Logout
-        </button>
     </div>
 </div>
 </nav>
@@ -85,6 +81,12 @@
     <div id="image-preview-container" style="display: none; margin: 10px 0; position: relative; width: fit-content;">
         <img id="image-preview" src="" alt="Selected Image" style="max-width: 200px; max-height: 200px; border-radius: 8px; border: 1px solid #ddd;">
         <button id="remove-image-btn" style="position: absolute; top: -5px; right: -5px; background: red; color: white; border: none; border-radius: 50%; width: 20px; height: 20px; cursor: pointer;">×</button>
+    </div>
+
+    <div id="audio-preview-container" style="display: none; margin: 10px 0; padding: 15px; background: #f1f5f9; border-radius: 12px; border: 1px solid #cbd5e1; position: relative;">
+        <p style="font-size: 12px; color: #64748b; margin-bottom: 8px; font-weight: 600;">🎤 Audio Preview:</p>
+        <audio id="audio-preview" controls style="width: 100%; height: 40px;"></audio>
+        <button id="remove-audio-btn" style="position: absolute; top: -5px; right: -5px; background: #ef4444; color: white; border: none; border-radius: 50%; width: 22px; height: 22px; cursor: pointer; font-weight: bold;">×</button>
     </div>
 
     <div class="input-actions">

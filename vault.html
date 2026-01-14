@@ -2,16 +2,14 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>MyBrain Vault - Secure Password Manager</title>
     
     <link rel="icon" href="https://img.icons8.com/fluency/48/brain.png" type="image/png">
     
     <link rel="stylesheet" href="css/global.css">
     <link rel="stylesheet" href="css/layout.css">
-    <link rel="stylesheet" href="css/style-profile.css">
     <link rel="stylesheet" href="css/style-vault.css">
-    <link rel="stylesheet" href="css/footer.css">
     <link rel="stylesheet" href="css/dark-mode.css"> 
 </head>
 <body>
@@ -24,6 +22,12 @@
     </div>
 
     <div class="nav-right">
+        <div class="nav-links" id="navLinks">
+            <a href="dashboard.html" class="nav-item">📝 Notes</a>
+            <a href="vault.html" class="nav-item active">🔐 Vault</a>
+            <button id="menu-logout-btn" class="btn-logout-nav">🚪 Logout</button>
+        </div>
+        
         <button id="theme-toggle" class="btn-icon">🌙</button>
 
         <div id="nav-mini-profile" class="nav-mini-profile">
@@ -32,77 +36,87 @@
         </div>
 
         <button id="mobile-menu-btn" class="hamburger-btn">☰</button>
-
-        <div class="nav-links" id="navLinks">
-            <a href="dashboard.html" class="nav-item">📝 Notes</a>
-            <a href="vault.html" class="nav-item active">🔐 Vault</a>
-            <button id="menu-logout-btn" class="btn-logout-nav">🚪 Logout</button>
-        </div>
-
-        <button id="desktop-logout-btn" class="btn-logout">
-            <span class="menu-icon">🚪</span> Logout
-        </button>
     </div>
 </div>
 </nav>
 
 <div class="container">
-    <div id="profile-widget-area"></div>
     
-    <div class="search-and-view">
-        <div class="search-wrapper">
+
+    <!-- ১. সিকিউর ইনপুট কার্ড -->
+    <div class="vault-input-card">
+        <div class="card-header">
+            <h3>🔒 Add New Secret</h3>
+            <p id="vaultStatus" class="status-msg"></p>
+        </div>
+        <div class="vault-form">
+            <div class="input-group">
+                <input type="text" id="siteName" placeholder="Website (e.g. Facebook)" class="v-input">
+            </div>
+            <div class="input-group">
+                <input type="text" id="username" placeholder="Username / Email" class="v-input">
+            </div>
+            <div class="input-group pass-group">
+                <input type="password" id="password" placeholder="Password" class="v-input">
+                <button id="togglePass" class="eye-btn">👁️</button>
+            </div>
+            <button id="saveSecretBtn" class="btn-encrypt">Encrypt & Save</button>
+        </div>
+    </div>
+
+    <!-- ২. টুলবার (Search & Actions) -->
+    <div class="vault-controls">
+        <div class="search-box">
             <input type="text" id="vaultSearchInput" placeholder="🔍 Search secrets...">
         </div>
-        
-        <div class="view-toggles">
-            <button id="gridViewBtn" class="view-btn active" title="Grid View">⊞</button>
-            <button id="listViewBtn" class="view-btn" title="List View">☰</button>
-        </div>
-    </div>
-
-    <div class="vault-input-area">
-        <h3>Add New Secret</h3>
-        <p id="vaultStatus" style="display:none; text-align: center; margin-bottom: 10px; font-weight: bold;"></p>
-
-        <div class="vault-form">
-            <input type="text" id="siteName" placeholder="Website Name (e.g. Facebook)" class="vault-input">
-            <input type="text" id="username" placeholder="Username / Email" class="vault-input">
-            
-            <div class="password-group" style="position: relative;">
-                <input type="password" id="password" placeholder="Password" class="vault-input" style="width: 100%; padding-right: 40px;">
-                <button id="togglePass" class="icon-btn-small" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); border: none; background: transparent; cursor: pointer;">👁️</button>
-            </div>
-
-            <button id="saveSecretBtn" class="btn btn-primary btn-full" style="cursor: pointer; margin-top: 15px;">
-                🔒 Encrypt & Save
-            </button>
-        </div>
-    </div>
-
-    <div class="vault-toolbar">
-        <div class="toolbar-title">
-            <span>⚙️ Manage Vault</span>
-        </div>
-        <div class="toolbar-actions">
+        <div class="action-btns">
+            <button id="retryMasterBtn" class="btn-outline" style="color: #e11d48; border-color: #fda4af;">🔓 Retry Password</button>
+            <button onclick="document.getElementById('csvInput').click()" class="btn-outline">📥 Import</button>
+            <button id="exportBtn" class="btn-outline">📤 Export</button>
+            <button id="deleteAllSecretsBtn" class="btn-outline" style="color: #ef4444; border-color: #fecaca;">🗑️ Delete All</button>
             <input type="file" id="csvInput" accept=".csv" style="display: none;">
-            <button onclick="document.getElementById('csvInput').click()" class="btn-secondary">
-                <span class="btn-icon">📥</span> Import
-            </button>
-            <button id="exportBtn" class="btn-secondary">
-                <span class="btn-icon">📤</span> Export
-            </button>
         </div>
     </div>
 
-    <div class="vault-list-container">
-        <div id="vault-grid" class="vault-grid masonry-grid">
-            <p style="text-align:center; color:#888; margin-top: 20px;">Loading secrets form secure cloud...</p>
-        </div>
+    <!-- ৩. পাসওয়ার্ড গ্রিড -->
+    <div id="vault-grid" class="vault-grid">
+        <p style="text-align:center; color:#888; margin-top: 20px;">Loading secrets from secure cloud...</p>
     </div>
-
 </div>
 
 <div id="app-footer"></div>
+
+<!-- Master Password Modal -->
+<div id="masterPassModal" class="custom-modal" style="display: none;">
+    <div class="modal-content">
+        <div style="font-size: 40px; margin-bottom: 15px;">🔐</div>
+        <h3>Unlock Your Vault</h3>
+        <p style="font-size: 13px; color: #666; margin-bottom: 20px;">Enter your master password to access secrets.</p>
+        
+        <div style="position: relative; width: 100%; margin: 15px 0;">
+            <input type="password" id="masterPassInput" placeholder="Master Password" class="v-input" style="margin-bottom: 0; padding-right: 45px;">
+            <button id="toggleMasterVisible" type="button" style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; font-size: 20px; color: #64748b; outline: none;">👁️</button>
+        </div>
+        
+        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 20px; font-size: 14px;">
+            <input type="checkbox" id="rememberMaster">
+            <label for="rememberMaster">Remember me on this device</label>
+        </div>
+
+        <button id="unlockVaultBtn" class="btn-encrypt" style="width: 100%;">Unlock Vault</button>
+        
+        <a id="resetVaultLink" href="#" style="display:block; margin-top:15px; font-size:12px; color:#ef4444; text-decoration:none; font-weight:600; text-align:center;">Forgot Password? Reset Vault</a>
+        
+        <div style="margin-top: 20px; padding: 10px; background: #fef9c3; border-radius: 10px; font-size: 12px; color: #854d0e; text-align: left;">
+            <strong>💡 Tips:</strong>
+            <ul style="margin: 5px 0; padding-left: 15px;">
+                <li>Use a favorite song lyric or a phrase.</li>
+                <li>Example: "IloveCoding@2025"</li>
+                <li>Never share this password with anyone!</li>
+            </ul>
+        </div>
+    </div>
+</div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>

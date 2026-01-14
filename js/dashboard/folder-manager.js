@@ -51,6 +51,19 @@ export function setupFolders(uid) {
             if(name) DBService.createFolderDB(uid, name.trim());
         };
     }
+
+    // ৩. মাউস হুইল দিয়ে স্ক্রল
+    setTimeout(() => {
+        const folderList = document.getElementById('custom-folder-list');
+        if (folderList) {
+            folderList.addEventListener('wheel', (evt) => {
+                if (evt.deltaY !== 0) {
+                    evt.preventDefault();
+                    folderList.scrollLeft += evt.deltaY;
+                }
+            }, { passive: false });
+        }
+    }, 1000);
 }
 
 function filterByFolder(uid, name, btn) {

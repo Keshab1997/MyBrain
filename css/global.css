@@ -9,24 +9,26 @@ font-family: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
 outline: none;
 }
 
-body {
+html, body {
+width: 100%;
+overflow-x: hidden;
 background-color: #f3f4f6;
 color: #1f2937;
 line-height: 1.6;
-overflow-x: hidden;
 }
 
-/* ২. সেন্ট্রাল কন্টেইনার (Full Width Logic) */
+/* ২. সেন্ট্রাল কনটেইনার */
 .container {
-max-width: 96%;
-width: 1600px;
-margin: 20px auto;
+width: 100%;
+max-width: 1600px;
+margin: 0 auto;
+padding: 15px;
 display: flex;
 flex-direction: column;
-gap: 25px;
+gap: 20px;
 }
 
-/* ৩. নেভিগেশন বার (Navbar) - FIXED DESIGN */
+/* ৩. নেভিগেশন বার */
 .navbar {
 width: 100%;
 background-color: rgba(255, 255, 255, 0.95);
@@ -38,18 +40,17 @@ z-index: 1000;
 border-bottom: 1px solid #e5e7eb;
 }
 
-/* নেভিগেশন কন্টেন্ট র্যাপার */
 .nav-content-wrapper {
+width: 100%;
 max-width: 1600px;
-width: 96%;
 margin: 0 auto;
+padding: 0 15px;
 display: flex;
 justify-content: space-between;
 align-items: center;
-height: 60px; /* ফিক্সড হাইট */
+height: 60px;
 }
 
-/* লোগো সেকশন */
 .logo-section {
 display: flex;
 align-items: center;
@@ -65,14 +66,12 @@ cursor: pointer;
 font-size: 1.6rem;
 }
 
-/* ডান পাশের আইটেম */
 .nav-right {
 display: flex;
 align-items: center;
 gap: 15px;
 }
 
-/* নেভিগেশন লিংকস */
 .nav-links {
 display: flex;
 gap: 10px;
@@ -102,7 +101,6 @@ background-color: #eff6ff;
 color: #2563eb;
 }
 
-/* ডার্ক মোড বাটন */
 .btn-icon {
 background: none;
 border: none;
@@ -122,7 +120,6 @@ background-color: #f3f4f6;
 color: #1f2937;
 }
 
-/* মিনি প্রোফাইল */
 .nav-mini-profile {
 display: flex;
 align-items: center;
@@ -158,7 +155,6 @@ overflow: hidden;
 text-overflow: ellipsis;
 }
 
-/* লগআউট বাটন */
 .btn-logout {
 display: flex;
 align-items: center;
@@ -179,7 +175,6 @@ height: 36px;
 background: #fecaca;
 }
 
-/* হ্যামবার্গার মেনু (মোবাইলের জন্য) */
 .hamburger-btn {
 display: none;
 background: none;
@@ -192,8 +187,8 @@ padding: 5px;
 
 /* মোবাইল রেসপনসিভ */
 @media (max-width: 900px) {
-.nav-links { display: none; } /* ডেস্কটপ লিংক হাইড */
-.hamburger-btn { display: block; } /* হ্যামবার্গার শো */
+.nav-links { display: none; }
+.hamburger-btn { display: block; }
 
 .nav-mini-profile {
     padding: 0;
@@ -201,17 +196,16 @@ padding: 5px;
     background: transparent;
 }
 .nav-username { display: none; }
-.nav-avatar { width: 36px; height: 36px; }
+.nav-avatar { width: 32px; height: 32px; }
 
-.btn-logout { display: none; } /* মোবাইলে মেনুর ভেতরে থাকবে */
+.btn-logout { display: none; }
 
-/* মোবাইল ড্রপডাউন মেনু */
 .nav-links.active {
     display: flex;
     flex-direction: column;
     position: absolute;
     top: 65px;
-    right: 20px;
+    right: 15px;
     background: white;
     width: 200px;
     padding: 15px;
@@ -226,10 +220,17 @@ padding: 5px;
     padding: 10px;
 }
 
-/* মোবাইলে লগআউট বাটন মেনুর ভেতরে দেখানোর জন্য JS লজিক লাগবে, অথবা আলাদা স্টাইল */
+.container {
+    padding: 10px;
+    gap: 15px;
 }
 
-/* 🔥 Toast Animations */
+.nav-content-wrapper {
+    padding: 0 10px;
+}
+}
+
+/* Toast Animations */
 @keyframes slideUp {
     from { opacity: 0; transform: translate(-50%, 20px); }
     to { opacity: 1; transform: translate(-50%, 0); }

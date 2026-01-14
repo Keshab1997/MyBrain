@@ -236,6 +236,11 @@ export function setupNoteSaving(user) {
     const previewContainer = document.getElementById('image-preview-container');
     const triggerFileBtn = document.getElementById('triggerFile');
     const removeImageBtn = document.getElementById('remove-image-btn');
+    
+    // 🔥 অডিও প্রিভিউ এলিমেন্ট
+    const audioPreviewContainer = document.getElementById('audio-preview-container');
+    const audioPreview = document.getElementById('audio-preview');
+    const removeAudioBtn = document.getElementById('remove-audio-btn');
 
     // 🔥 AI বাটন এবং টুলবার (আপডেটেড)
     const toolbarHTML = `
@@ -358,6 +363,14 @@ export function setupNoteSaving(user) {
                 mediaRecorder.ondataavailable = event => audioChunks.push(event.data);
                 mediaRecorder.onstop = () => {
                     audioBlob = new Blob(audioChunks, { type: 'audio/mp3' });
+                    
+                    // 🔥 অডিও প্রিভিউ সেট করা
+                    const audioUrl = URL.createObjectURL(audioBlob);
+                    if(audioPreview && audioPreviewContainer) {
+                        audioPreview.src = audioUrl;
+                        audioPreviewContainer.style.display = 'block';
+                    }
+                    
                     saveBtn.innerText = "Save Audio Note";
                 };
                 mediaRecorder.start();
@@ -400,8 +413,18 @@ export function setupNoteSaving(user) {
     function clearFileInput() {
         fileInput.value = ""; androidSharedImage = null; audioBlob = null;
         previewContainer.style.display = 'none';
+        
+        // 🔥 অডিও প্রিভিউ ক্লিয়ার করা
+        if(audioPreviewContainer && audioPreview) {
+            audioPreviewContainer.style.display = 'none';
+            audioPreview.src = '';
+        }
+        
         saveBtn.innerText = "Save to Brain";
     }
+    
+    // 🔥 অডিও রিমুভ বাটন
+    if(removeAudioBtn) removeAudioBtn.onclick = clearFileInput;
 
     saveBtn.addEventListener('click', async () => {
         const rawText = noteInput.value;
@@ -416,7 +439,6 @@ export function setupNoteSaving(user) {
         
         try {
             const text = Utils.normalizeUrl(rawText);
-            const tags = Utils.extractTags(text);
             let fileUrl = null;
             let type = 'text';
             let linkMeta = {};
@@ -435,21 +457,14 @@ export function setupNoteSaving(user) {
             } 
             else if (Utils.isValidURL(text)) {
                 type = 'link';
-                // 🔥 আপডেট: ইনস্টাগ্রাম বা ফেসবুক হলে প্রিভিউ ফেচ করবেন না
                 if (!text.includes('instagram.com') && !text.includes('facebook.com')) {
                     saveBtn.innerText = "🤖 AI Fetching...";
                     try {
                         linkMeta = await Utils.getLinkPreviewData(text);
-                        
-                        // অটোমেটিক ট্যাগ যুক্ত করা (যদি ওয়ার্কার ট্যাগ দেয়)
-                        if (linkMeta.tags && Array.isArray(linkMeta.tags)) {
-                            tags = [...new Set([...tags, ...linkMeta.tags])];
-                        }
                     } catch (e) {
                         console.log("Preview failed, saving as simple link");
                     }
                 } else {
-                    // ইনস্টাগ্রামের জন্য সরাসরি টেক্সট হিসেবে সেভ হবে, যাতে এমবেড কাজ করে
                     console.log("Skipping preview fetch for social media embed");
                     if (text.includes('instagram')) {
                         linkMeta = { title: "Instagram Post" };
@@ -457,10 +472,13 @@ export function setupNoteSaving(user) {
                 }
             }
 
+            // 🔥 অটো ট্যাগ জেনারেট করা
+            const autoTags = Utils.generateAutoTags(rawText, linkMeta);
+
             saveBtn.innerText = "Saving...";
             await DBService.addNoteToDB(user.uid, {
                 text, fileUrl, type, color: selectedColor, folder: targetFolder, 
-                tags: tags, status: 'active', isPinned: false, ...linkMeta
+                tags: autoTags, status: 'active', isPinned: false, ...linkMeta
             });
 
             noteInput.value = ""; clearFileInput();

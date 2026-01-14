@@ -111,3 +111,23 @@ export function optimizeCloudinaryUrl(url) {
     }
     return url;
 }
+
+
+// 🔥 অটো ট্যাগ জেনারেটর (টেক্সট + মেটাডাটা থেকে)
+export function generateAutoTags(text, metadata = {}) {
+    let combinedText = text + " " + (metadata.title || "") + " " + (metadata.description || "");
+    
+    // ১. হ্যাশট্যাগগুলো খুঁজে বের করা (#example)
+    const hashtagRegex = /#(\w+)/g;
+    const hashtags = [...combinedText.matchAll(hashtagRegex)].map(match => match[1].toLowerCase());
+
+    // ২. গুরুত্বপূর্ণ শব্দ বের করা (৪ অক্ষরের বেশি লম্বা শব্দ)
+    const words = combinedText.toLowerCase()
+        .replace(/[^\w\s]/g, '') // স্পেশাল ক্যারেক্টার রিমুভ
+        .split(/\s+/)
+        .filter(word => word.length > 4 && !['https', 'www', 'com', 'video', 'photo', 'instagram', 'facebook', 'youtube'].includes(word));
+
+    // ৩. সব ট্যাগ মিলিয়ে ইউনিক ট্যাগ লিস্ট তৈরি (সর্বোচ্চ ৮টি)
+    const allTags = [...new Set([...hashtags, ...words])];
+    return allTags.slice(0, 8); 
+}

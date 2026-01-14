@@ -1,22 +1,9 @@
 // sw.js
-const CACHE_NAME = 'mybrain-ultra-v1';
-const STATIC_ASSETS = [
-  './',
-  './index.html',
-  './dashboard.html',
-  './vault.html',
-  './css/global.css',
-  './css/layout.css',
-  './css/style-dash.css',
-  './css/dark-mode.css',
-  './js/ui-shared.js',
-  './js/dashboard/main.js'
-];
+const CACHE_NAME = 'mybrain-v4';
+const ASSETS = ['./', './index.html', './dashboard.html', './vault.html', './css/global.css', './js/ui-shared.js'];
 
 self.addEventListener('install', (e) => {
-  e.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(STATIC_ASSETS))
-  );
+  e.waitUntil(caches.open(CACHE_NAME).then(c => c.addAll(ASSETS)));
   self.skipWaiting();
 });
 
@@ -30,21 +17,23 @@ self.addEventListener('activate', (e) => {
   );
 });
 
-self.addEventListener('fetch', (e) => {
-  if (e.request.url.includes('firestore.googleapis.com') || e.request.url.includes('cloudinary')) {
-    return;
-  }
+self.addEventListener('fetch', (event) => {
+  if (event.request.url.includes('firestore.googleapis.com') || event.request.url.includes('cloudinary')) return;
 
-  e.respondWith(
-    caches.match(e.request).then((cachedResponse) => {
-      const fetchPromise = fetch(e.request).then((networkResponse) => {
+  event.respondWith(
+    caches.match(event.request).then((cachedResponse) => {
+      const networkFetch = fetch(event.request).then((networkResponse) => {
+        if (!networkResponse || networkResponse.status !== 200 || networkResponse.type !== 'basic') {
+          return networkResponse;
+        }
+        const responseToCache = networkResponse.clone();
         caches.open(CACHE_NAME).then((cache) => {
-          cache.put(e.request, networkResponse.clone());
+          cache.put(event.request, responseToCache);
         });
         return networkResponse;
-      }).catch(() => cachedResponse);
+      });
 
-      return cachedResponse || fetchPromise;
-    })
+      return cachedResponse || networkFetch;
+    }).catch(() => caches.match('./index.html'))
   );
 });
