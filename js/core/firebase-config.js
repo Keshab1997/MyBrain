@@ -10,14 +10,16 @@ import {
 
 import { 
     getFirestore, 
+    initializeFirestore,
+    persistentLocalCache,
+    persistentMultipleTabManager,
     collection, 
     addDoc, 
     getDocs,
     doc,
     deleteDoc,
     query,
-    where,
-    enableIndexedDbPersistence
+    where
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -32,17 +34,15 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
-const db = getFirestore(app);
-const provider = new GoogleAuthProvider();
 
-// অফলাইন সাপোর্ট (যদি ব্রাউজার সাপোর্ট করে)
-enableIndexedDbPersistence(db).catch((err) => {
-    if (err.code == 'failed-precondition') {
-        console.log('Multiple tabs open, persistence can only be enabled in one tab at a a time.');
-    } else if (err.code == 'unimplemented') {
-        console.log('The current browser does not support all of the features required to enable persistence');
-    }
+// নতুন অফলাইন সাপোর্ট (ফায়ারবেস v10+ এর জন্য)
+const db = initializeFirestore(app, {
+    localCache: persistentLocalCache({ 
+        tabManager: persistentMultipleTabManager() 
+    })
 });
+
+const provider = new GoogleAuthProvider();
 
 export { 
     app, auth, db, provider, 

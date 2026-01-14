@@ -1,7 +1,23 @@
 import { getUniversalEmbedHTML } from "../core/utils.js";
 import { updateNoteContentDB } from "../core/firebase-service.js";
 
-// Generate Note Card HTML Object
+// কপি ফাংশন (গ্লোবাল)
+window.copyCodeBlock = (btn) => {
+    const wrapper = btn.closest('.code-wrapper');
+    const code = wrapper.querySelector('code').innerText;
+
+    navigator.clipboard.writeText(code).then(() => {
+        const originalHTML = btn.innerHTML;
+        btn.innerHTML = `<span>✔️</span> Copied!`;
+        btn.style.color = '#98c379';
+        setTimeout(() => {
+            btn.innerHTML = originalHTML;
+            btn.style.color = '';
+        }, 2000);
+    }).catch(err => console.error('Copy failed:', err));
+};
+
+// নোট কার্ড তৈরি ফাংশন (ইমেজ URL ফিক্স সহ)
 export function createNoteCardElement(docSnap, isTrashView, callbacks) {
     const data = docSnap.data();
     const id = docSnap.id;
@@ -10,14 +26,14 @@ export function createNoteCardElement(docSnap, isTrashView, callbacks) {
     card.setAttribute('data-id', id);
     if(data.color) card.style.backgroundColor = data.color;
 
-    // 🔥 1. Multi-Select Checkbox (New)
+    // সিলেকশন চেকবক্স
     const selectCheckbox = document.createElement('input');
     selectCheckbox.type = 'checkbox';
     selectCheckbox.className = 'card-select-checkbox';
     selectCheckbox.setAttribute('data-id', id);
     card.appendChild(selectCheckbox);
 
-    // 2. Pin & Drag Handle
+    // পিন এবং ড্র্যাগ হ্যান্ডেল
     if(!isTrashView) {
         const dragIcon = document.createElement('div');
         dragIcon.className = 'drag-handle';
@@ -31,78 +47,73 @@ export function createNoteCardElement(docSnap, isTrashView, callbacks) {
         }
     }
 
-    // 🔥 3. Folder Badge (FIXED: No Overlap)
-    // আগে এটি absolute ছিল, এখন এটি relative করা হয়েছে যাতে টেক্সট নিচে নেমে যায়।
+    // ফোল্ডার ব্যাজ
     if(data.folder && !isTrashView) {
         const folderBadge = document.createElement('div');
-        folderBadge.style.cssText = `
-            display: inline-block;
-            background: rgba(0,0,0,0.06);
-            font-size: 11px;
-            padding: 3px 8px;
-            border-radius: 6px;
-            color: #555;
-            font-weight: 600;
-            margin-bottom: 8px;
-            border: 1px solid rgba(0,0,0,0.05);
-            max-width: 80%;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        `;
+        folderBadge.style.cssText = `display: inline-block; background: rgba(0,0,0,0.06); font-size: 11px; padding: 3px 8px; border-radius: 6px; color: #555; font-weight: 600; margin-bottom: 8px; border: 1px solid rgba(0,0,0,0.05); max-width: 80%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;`;
         folderBadge.innerText = `📁 ${data.folder}`;
         card.appendChild(folderBadge);
     }
 
-    // 4. Content Generation
+    // কন্টেন্ট জেনারেশন
     let contentHTML = '';
 
-    // A. Audio Player
+    // প্রথমে চেক করা হচ্ছে এটি কোনো সোশ্যাল মিডিয়া এম্বেড কিনা
+    const mediaEmbed = getUniversalEmbedHTML(data.text);
+
+    // A. Audio
     if (data.type === 'audio' && data.fileUrl) {
         contentHTML += `
             <div style="margin-bottom:10px;">
                 <audio controls style="width:100%; height:35px;">
                     <source src="${data.fileUrl}" type="audio/mpeg">
-                    Your browser does not support the audio element.
                 </audio>
             </div>`;
         if(data.text) contentHTML += generateTextHTML(data.text, id);
     }
     // B. Image
     else if (data.type === 'image' && (data.fileUrl || data.image)) {
-        contentHTML += `<img src="${data.fileUrl || data.image}" loading="lazy" style="width:100%; border-radius: 8px; display:block; margin-bottom:5px;">`;
+        const imgUrl = data.fileUrl || data.image;
+        contentHTML += `<img src="${imgUrl}" loading="lazy" style="width:100%; border-radius: 8px; display:block; margin-bottom:5px;">`;
         if(data.text) contentHTML += generateTextHTML(data.text, id);
     } 
-    // C. Link Preview
-    else if (data.type === 'link' && (data.title || data.metaTitle) && !getUniversalEmbedHTML(data.text)) {
+    
+    // 🔥 C. EMBED PRIORITY (FIXED)
+    // যদি লিংক হয় কিন্তু এর এম্বেড থাকে (যেমন Instagram/Facebook), তবে এম্বেড দেখাবে
+    else if (mediaEmbed) {
+        contentHTML += mediaEmbed;
+        
+        // যদি টাইটেল থাকে (যেমন YouTube এর ক্ষেত্রে)
+        const videoTitle = data.title || data.metaTitle;
+        if(videoTitle) {
+            contentHTML += `<div style="margin-top:10px; margin-bottom:5px; font-weight:600; font-size:15px; color:#1f2937; line-height:1.4;">${videoTitle}</div>`;
+        }
+        
+        // অরিজিনাল লিংক বাটন
+        contentHTML += `<div style="text-align:right; margin-bottom:5px;"><a href="${data.text}" target="_blank" style="font-size:11px; color:#888; text-decoration:none;">🔗 Open Original Link</a></div>`;
+    }
+
+    // D. Generic Link Preview (যাদের এম্বেড নেই, যেমন ব্লগ বা নিউজ)
+    else if (data.type === 'link') {
         const title = data.title || data.metaTitle || data.text;
         const img = data.image || data.metaImg;
         const domain = data.domain || data.metaDomain || 'Link';
         contentHTML += `
-        <a href="${data.text}" target="_blank" style="text-decoration:none; color:inherit; display:block; border:1px solid rgba(0,0,0,0.1); border-radius:8px; overflow:hidden; background: rgba(255,255,255,0.6); transition: all 0.2s;">
+        <a href="${data.text}" target="_blank" style="text-decoration:none; color:inherit; display:block; border:1px solid rgba(0,0,0,0.1); border-radius:8px; overflow:hidden; background: rgba(255,255,255,0.6);">
             ${img ? `<div style="height:140px; background-image: url('${img}'); background-size: cover; background-position: center;"></div>` : ''}
             <div style="padding:10px;">
-                <h4 style="margin:0 0 5px 0; font-size:14px; color:#333; line-height:1.4;">${title}</h4>
+                <h4 style="margin:0 0 5px 0; font-size:14px; color:#333;">${title}</h4>
                 <div style="font-size:11px; color:#666;">🔗 ${domain}</div>
             </div>
         </a>`;
     } 
-    // D. Text / Embed
+    
+    // E. Plain Text
     else {
-        const mediaEmbed = getUniversalEmbedHTML(data.text);
-        if (mediaEmbed) {
-            contentHTML += mediaEmbed;
-            const videoTitle = data.title || data.metaTitle;
-            if(videoTitle) {
-                contentHTML += `<div style="margin-top:10px; margin-bottom:5px; font-weight:600; font-size:15px; color:#1f2937; line-height:1.4;">${videoTitle}</div>`;
-            }
-            contentHTML += `<div style="text-align:right; margin-bottom:5px;"><a href="${data.text}" target="_blank" style="font-size:11px; color:#888; text-decoration:none;">🔗 Open Original Link</a></div>`;
-        } else {
-            contentHTML += generateTextHTML(data.text || '', id);
-        }
+        contentHTML += generateTextHTML(data.text || '', id);
     }
 
-    // 5. Tags
+    // Tags
     if (data.tags && data.tags.length > 0) {
         contentHTML += `<div style="margin-top:8px; display:flex; flex-wrap:wrap; gap:5px; padding-top:5px; border-top:1px dashed rgba(0,0,0,0.05);">`;
         data.tags.forEach(tag => {
@@ -111,7 +122,7 @@ export function createNoteCardElement(docSnap, isTrashView, callbacks) {
         contentHTML += `</div>`;
     }
 
-    // 6. Footer
+    // Footer
     contentHTML += `<div class="card-footer" style="display:flex; justify-content:space-between; align-items:center; margin-top:10px; padding-top:10px; border-top:1px solid rgba(0,0,0,0.05);">
         <small class="card-date" style="font-size:11px; color:#999;">${data.timestamp?.toDate().toLocaleDateString() || ''}</small>`;
 
@@ -126,7 +137,7 @@ export function createNoteCardElement(docSnap, isTrashView, callbacks) {
     contentWrapper.innerHTML = contentHTML;
     card.appendChild(contentWrapper);
 
-    // 7. Event Listeners
+    // Event Listeners
     const checkboxes = card.querySelectorAll('.task-checkbox');
     checkboxes.forEach(box => {
         box.addEventListener('change', async (e) => {
@@ -134,11 +145,9 @@ export function createNoteCardElement(docSnap, isTrashView, callbacks) {
             const index = parseInt(e.target.dataset.index);
             const isChecked = e.target.checked;
             let lines = data.text.split('\n');
-            let currentLine = lines[index];
-            if (isChecked) lines[index] = currentLine.replace('- [ ]', '- [x]');
-            else lines[index] = currentLine.replace('- [x]', '- [ ]');
-            const newText = lines.join('\n');
-            await updateNoteContentDB(id, newText);
+            if (isChecked) lines[index] = lines[index].replace('- [ ]', '- [x]');
+            else lines[index] = lines[index].replace('- [x]', '- [ ]');
+            await updateNoteContentDB(id, lines.join('\n'));
         });
     });
 
@@ -171,7 +180,6 @@ export function createNoteCardElement(docSnap, isTrashView, callbacks) {
         });
     }
 
-    // 🔥 Checkbox Click Event (Selection Logic)
     selectCheckbox.addEventListener('change', (e) => {
         e.stopPropagation();
         if(e.target.checked) {
@@ -183,7 +191,6 @@ export function createNoteCardElement(docSnap, isTrashView, callbacks) {
         }
     });
 
-    // কার্ডে ক্লিক করলে যদি সিলেকশন মোড অন থাকে তবে সিলেক্ট হবে
     card.addEventListener('click', (e) => {
         if(document.body.classList.contains('selection-mode') && !e.target.closest('button') && !e.target.closest('a') && !e.target.closest('.task-checkbox')) {
             selectCheckbox.checked = !selectCheckbox.checked;
@@ -194,35 +201,131 @@ export function createNoteCardElement(docSnap, isTrashView, callbacks) {
     return card;
 }
 
+// টেক্সট জেনারেটর (Highlight.js ফিক্স সহ)
 function generateTextHTML(text, noteId) {
     if (!text) return "";
+
+    // চেকলিস্ট হ্যান্ডলিং
     if (text.includes('- [ ]') || text.includes('- [x]')) {
         let lines = text.split('\n');
         let html = '<div class="checklist-container" style="text-align:left;">';
-        let hasChecklist = false;
         lines.forEach((line, index) => {
             if (line.trim().startsWith('- [ ]')) {
-                hasChecklist = true;
-                const content = line.replace('- [ ]', '').trim();
-                html += `<div style="display:flex; align-items:center; margin-bottom:4px;"><input type="checkbox" class="task-checkbox" data-index="${index}" style="margin-right:8px; cursor:pointer;"><span style="font-size:14px;">${content}</span></div>`;
+                html += `<div style="display:flex; align-items:center; margin-bottom:4px;"><input type="checkbox" class="task-checkbox" data-index="${index}" style="margin-right:8px;"><span style="font-size:14px;">${line.replace('- [ ]', '').trim()}</span></div>`;
             } else if (line.trim().startsWith('- [x]')) {
-                hasChecklist = true;
-                const content = line.replace('- [x]', '').trim();
-                html += `<div style="display:flex; align-items:center; margin-bottom:4px;"><input type="checkbox" class="task-checkbox" data-index="${index}" checked style="margin-right:8px; cursor:pointer;"><span style="font-size:14px; text-decoration:line-through; color:#999;">${content}</span></div>`;
+                html += `<div style="display:flex; align-items:center; margin-bottom:4px;"><input type="checkbox" class="task-checkbox" data-index="${index}" checked style="margin-right:8px;"><span style="font-size:14px; text-decoration:line-through; color:#999;">${line.replace('- [x]', '').trim()}</span></div>`;
             } else {
                 html += `<div style="margin-bottom:4px;">${marked.parse(line)}</div>`;
             }
         });
         html += '</div>';
-        if(hasChecklist) return html;
+        return html;
     }
-    let parsedText = text;
-    if (typeof marked !== 'undefined') { try { parsedText = marked.parse(text); } catch (e) { console.error(e); } }
+
+    // Marked.js কনফিগারেশন
+    const renderer = new marked.Renderer();
+    
+    renderer.code = function(code, language) {
+        let codeContent = code;
+        let codeLang = language;
+
+        // 🔥 চেক করা হচ্ছে 'code' কি অবজেক্ট নাকি স্ট্রিং (নতুন ভার্সন ফিক্স)
+        if (typeof code === 'object' && code !== null) {
+            codeContent = code.text || code.raw || String(code) || "";
+            codeLang = code.lang || language;
+        }
+
+        // স্ট্রিং নিশ্চিত করা
+        codeContent = String(codeContent || '');
+        const validLang = (typeof hljs !== 'undefined' && hljs.getLanguage(codeLang)) ? codeLang : 'plaintext';
+        
+        let highlighted;
+        try {
+            if (typeof hljs !== 'undefined') {
+                highlighted = hljs.highlight(codeContent, { language: validLang }).value;
+            } else {
+                highlighted = codeContent.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+            }
+        } catch (e) {
+            console.warn("Highlight error:", e);
+            highlighted = codeContent.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+        }
+
+        return `
+        <div class="code-wrapper">
+            <div class="code-header">
+                <span style="font-weight:600; text-transform:uppercase;">${validLang}</span>
+                <button class="copy-code-btn" onclick="window.copyCodeBlock(this)">
+                    <span>📋</span> Copy
+                </button>
+            </div>
+            <pre><code class="hljs language-${validLang}">${highlighted}</code></pre>
+        </div>`;
+    };
+
+    marked.setOptions({ renderer: renderer });
+
+    // টেক্সট পার্সিং
+    let parsedText = "";
+    try {
+        parsedText = marked.parse(text);
+    } catch (e) {
+        parsedText = text;
+    }
+
+    // 🔥 Read More লজিক (FIXED)
     const tempDiv = document.createElement("div");
     tempDiv.innerHTML = parsedText;
     const plainText = tempDiv.textContent || "";
-    if (plainText.length > 250) {
-        return `<div class="note-text" style="overflow:hidden; max-height:100px; mask-image: linear-gradient(180deg, #000 60%, transparent);">${parsedText}</div><button class="read-more-btn" style="color:#007bff; border:none; background:none; padding:0; cursor:pointer; font-size:13px; margin-top:5px; font-weight:bold;">Read More...</button>`;
+    
+    // যদি টেক্সট ২০০ ক্যারেক্টারের বেশি হয়
+    if (plainText.length > 200) {
+        const uniqueId = `note-content-${noteId || Math.random().toString(36).substr(2, 9)}`;
+        
+        return `
+        <div id="${uniqueId}" class="note-text" style="
+            overflow: hidden; 
+            max-height: 100px; 
+            position: relative;
+            transition: max-height 0.3s ease;
+            line-height: 1.5;
+        ">
+            ${parsedText}
+            <div class="fade-overlay" style="
+                position: absolute; 
+                bottom: 0; 
+                left: 0; 
+                width: 100%; 
+                height: 30px; 
+                background: linear-gradient(to bottom, transparent, white);
+                pointer-events: none;
+            "></div>
+        </div>
+        <button class="read-more-btn" onclick="
+            const content = document.getElementById('${uniqueId}');
+            const overlay = content.querySelector('.fade-overlay');
+            const btn = this;
+            if (content.style.maxHeight === 'none') {
+                content.style.maxHeight = '100px';
+                overlay.style.display = 'block';
+                btn.textContent = 'Read More...';
+            } else {
+                content.style.maxHeight = 'none';
+                overlay.style.display = 'none';
+                btn.textContent = 'Show Less';
+            }
+        " style="
+            color: #2563eb; 
+            border: none; 
+            background: none; 
+            padding: 5px 0; 
+            cursor: pointer; 
+            font-size: 13px; 
+            font-weight: bold; 
+            margin-top: 5px;
+            display: block;
+        ">Read More...</button>`;
     }
+    
     return `<div class="note-text">${parsedText}</div>`;
 }

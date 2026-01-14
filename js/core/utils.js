@@ -12,13 +12,22 @@ export function isValidURL(s) {
     try { return new URL(s).protocol.startsWith("http"); } catch { return false; } 
 }
 
-// ৩. লিঙ্ক প্রিভিউ ডাটা আনা
+// ৩. লিঙ্ক প্রিভিউ ডাটা আনা (🔥 আপডেটেড: Cloudflare Worker দিয়ে)
 export async function getLinkPreviewData(url) { 
-    try{ 
-        const r = await fetch(`${WORKER_URL}?url=${encodeURIComponent(url)}`); 
-        const j = await r.json(); 
-        return j.status==='success'?j.data:{title:url}; 
-    }catch{return{title:url};} 
+    try { 
+        // আপনার ওয়ার্কার লিঙ্কে রিকোয়েস্ট পাঠানো হচ্ছে
+        const response = await fetch(`${WORKER_URL}?url=${encodeURIComponent(url)}`); 
+        const json = await response.json(); 
+        
+        if (json.status === 'success') {
+            return json.data; // এখানে title, image, description এবং tags থাকে
+        } else {
+            return { title: url, image: null, description: null, tags: [] };
+        }
+    } catch (error) {
+        console.error("Worker Fetch Error:", error);
+        return { title: url };
+    } 
 }
 
 // ৪. Base64 কনভার্টার
@@ -52,6 +61,21 @@ export function getUniversalEmbedHTML(text) {
                 <iframe src="https://www.youtube.com/embed/${ytMatch[1]}" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: 0;" allowfullscreen></iframe></div>`;
     }
 
+    // Instagram Logic (UPDATED 🚀)
+    const instaRegex = /(?:https?:\/\/)?(?:www\.)?instagram\.com\/(p|reel|tv)\/([a-zA-Z0-9_-]+)/;
+    const instaMatch = url.match(instaRegex);
+    
+    if (instaMatch) {
+        const postType = instaMatch[1]; // p, reel, or tv
+        const postId = instaMatch[2];
+        const cleanUrl = `https://www.instagram.com/${postType}/${postId}`;
+        const embedUrl = `${cleanUrl}/embed/captioned/`;
+
+        return `<div style="overflow: hidden; border-radius: 12px; border: 1px solid #dbdbdb; margin-bottom:10px; background: #fff;">
+                <iframe src="${embedUrl}" style="width: 100%; height: 550px; border: 0;" frameborder="0" scrolling="no" allowtransparency="true" allowfullscreen></iframe>
+                </div>`;
+    }
+
     // Facebook
     if (url.includes('facebook.com') || url.includes('fb.watch')) {
         try {
@@ -65,17 +89,6 @@ export function getUniversalEmbedHTML(text) {
                     <iframe src="https://www.facebook.com/plugins/post.php?href=${encodedUrl}&show_text=true&width=500" width="100%" height="500" style="border:none;overflow:hidden" scrolling="yes" frameborder="0" allowfullscreen="true"></iframe>
                     </div>`;
         } catch (e) { return null; }
-    }
-
-    // Instagram
-    const instaRegex = /(https?:\/\/(?:www\.)?instagram\.com\/(?:p|reel)\/[\w-]+)/;
-    const instaMatch = url.split('?')[0].match(instaRegex);
-    if (instaMatch) {
-        let cleanUrl = instaMatch[0];
-        let embedUrl = cleanUrl.endsWith('/') ? cleanUrl + 'embed' : cleanUrl + '/embed';
-        return `<div style="overflow: hidden; border-radius: 8px; border: 1px solid #dbdbdb; margin-bottom:10px; background: #fff;">
-                <iframe src="${embedUrl}" style="width: 100%; height: 450px; border: 0;" frameborder="0" scrolling="no" allowtransparency="true" allowfullscreen></iframe>
-                </div>`;
     }
     
     return null;

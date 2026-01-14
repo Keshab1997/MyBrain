@@ -3,32 +3,7 @@ import { collection, query, where, orderBy, onSnapshot } from "https://www.gstat
 import * as DBService from "../core/firebase-service.js";
 import * as UI from "./ui-renderer.js";
 import * as Utils from "../core/utils.js";
-// import { openContextMenu, openReadModal } from "./menu-manager.js"; // Removed - now in ui-shared.js
-
-// Context Menu and Read Modal functions (moved from menu-manager.js)
-function openContextMenu(e, noteId) {
-    const contextMenu = document.getElementById('contextMenu');
-    if (contextMenu) {
-        contextMenu.style.display = 'block';
-        contextMenu.style.left = e.pageX + 'px';
-        contextMenu.style.top = e.pageY + 'px';
-        contextMenu.setAttribute('data-note-id', noteId);
-    }
-}
-
-function openReadModal(data, noteId) {
-    const readModal = document.getElementById('readModal');
-    const readContent = document.getElementById('readModalContent');
-    const readDate = document.getElementById('readModalDate');
-    const readFolder = document.getElementById('readModalFolder');
-    
-    if (readModal && readContent) {
-        readContent.innerHTML = data.text || 'No content';
-        if (readDate) readDate.textContent = data.timestamp?.toDate().toLocaleDateString() || 'Unknown date';
-        if (readFolder) readFolder.textContent = data.folder || 'General';
-        readModal.style.display = 'flex';
-    }
-}
+import { openContextMenu, openReadModal } from "./menu-manager.js";
 import { askAI } from "./ai-service.js"; // 🔥 AI Service Import
 
 let unsubscribeNotes = null;
@@ -466,9 +441,25 @@ export function setupNoteSaving(user) {
             } 
             else if (Utils.isValidURL(text)) {
                 type = 'link';
+                // 🔥 আপডেট: ইনস্টাগ্রাম বা ফেসবুক হলে প্রিভিউ ফেচ করবেন না
                 if (!text.includes('instagram.com') && !text.includes('facebook.com')) {
-                    saveBtn.innerText = "Fetching Preview...";
-                    linkMeta = await Utils.getLinkPreviewData(text);
+                    saveBtn.innerText = "🤖 AI Fetching...";
+                    try {
+                        linkMeta = await Utils.getLinkPreviewData(text);
+                        
+                        // অটোমেটিক ট্যাগ যুক্ত করা (যদি ওয়ার্কার ট্যাগ দেয়)
+                        if (linkMeta.tags && Array.isArray(linkMeta.tags)) {
+                            tags = [...new Set([...tags, ...linkMeta.tags])];
+                        }
+                    } catch (e) {
+                        console.log("Preview failed, saving as simple link");
+                    }
+                } else {
+                    // ইনস্টাগ্রামের জন্য সরাসরি টেক্সট হিসেবে সেভ হবে, যাতে এমবেড কাজ করে
+                    console.log("Skipping preview fetch for social media embed");
+                    if (text.includes('instagram')) {
+                        linkMeta = { title: "Instagram Post" };
+                    }
                 }
             }
 

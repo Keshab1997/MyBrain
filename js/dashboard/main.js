@@ -5,8 +5,8 @@ import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/
 // মডিউল ইমপোর্ট
 import { loadNotes, setupNoteSaving } from "./note-manager.js";
 import { setupFolders } from "./folder-manager.js";
-// setupModals removed as menu-manager.js is now part of ui-shared.js
 import { setupEventListeners } from "./event-manager.js";
+import { setupModals } from "./menu-manager.js";
 
 // অথেনটিকেশন চেকার
 onAuthStateChanged(auth, (user) => {
@@ -55,7 +55,7 @@ function initDashboard(user) {
         setupNoteSaving(user);            
         setupFolders(user.uid);           
         setupEventListeners(user);        
-        // setupModals(); // Removed - now handled by ui-shared.js
+        setupModals(); // Context menu এবং modal functionality
     } catch (error) {
         console.error("Error initializing modules:", error);
     }

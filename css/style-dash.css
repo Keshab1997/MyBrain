@@ -679,3 +679,66 @@ column-count: 1 !important;
 /* =========================================
 AI Dropdown & Toolbar Styles (New)
 ========================================= */
+
+/* =========================================
+VS Code Style Code Blocks
+========================================= */
+
+/* কোড ব্লকের কন্টেইনার (VS Code Look) */
+.code-wrapper {
+    position: relative;
+    background: #282c34; /* VS Code Dark Background */
+    border-radius: 8px;
+    margin: 10px 0;
+    overflow: hidden;
+    border: 1px solid #3e4451;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+}
+
+/* হেডার বার (ভাষা এবং কপি বাটন রাখার জন্য) */
+.code-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #21252b;
+    padding: 5px 15px;
+    border-bottom: 1px solid #3e4451;
+    font-family: 'Consolas', 'Monaco', monospace;
+    font-size: 12px;
+    color: #abb2bf;
+}
+
+/* কপি বাটন */
+.copy-code-btn {
+    background: transparent;
+    border: none;
+    color: #abb2bf;
+    cursor: pointer;
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    transition: all 0.2s;
+    padding: 4px 8px;
+    border-radius: 4px;
+}
+
+.copy-code-btn:hover {
+    background: #3e4451;
+    color: #fff;
+}
+
+/* আসল কোড এরিয়া */
+.code-wrapper pre {
+    margin: 0;
+    padding: 15px;
+    overflow-x: auto;
+}
+
+.code-wrapper code {
+    font-family: 'Fira Code', 'Consolas', monospace; /* কোডিং ফন্ট */
+    font-size: 14px;
+    line-height: 1.5;
+    background: transparent !important; /* Highlight.js এর ডিফল্ট ব্যাকগ্রাউন্ড সরানো */
+    padding: 0 !important;
+}
