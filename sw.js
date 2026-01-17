@@ -1,5 +1,5 @@
-// sw.js - Version Update: v6
-const CACHE_NAME = 'mindvault-v6'; 
+// sw.js - Version Update: v7
+const CACHE_NAME = 'mindvault-v7'; 
 const ASSETS = [
   './', 
   './index.html', 
@@ -26,7 +26,7 @@ self.addEventListener('activate', (e) => {
     caches.keys().then((keys) => {
       return Promise.all(keys.map((key) => {
         // বর্তমান ভার্সন ছাড়া বাকি সব পুরনো ক্যাশ মুছে ফেলবে
-        if (key !== CACHE_NAME && key !== 'mindvault-images' && key !== 'shared-data') {
+        if (key !== CACHE_NAME && key !== 'mindvault-images' && key !== 'shared-data' && key !== 'shared-queue') {
           return caches.delete(key);
         }
       }));
@@ -53,16 +53,32 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // শেয়ার টারগেট হ্যান্ডেল করা
+  // শেয়ার টারগেট হ্যান্ডেল করা (Background Processing)
   if (event.request.method === 'POST' && event.request.url.includes('dashboard.html')) {
-    event.respondWith(Response.redirect('./dashboard.html?shared=true', 303));
-    
-    event.waitUntil(async function() {
-      const formData = await event.request.formData();
-      const file = formData.get('shared_image');
-      const cache = await caches.open('shared-data');
-      await cache.put('shared-image', new Response(file));
-    }());
+    event.respondWith(
+      (async () => {
+        const formData = await event.request.formData();
+        const title = formData.get('title') || '';
+        const text = formData.get('text') || '';
+        const urlStr = formData.get('url') || '';
+        const files = formData.getAll('shared_image');
+
+        // ডেটাগুলো একটি টেম্পোরারি ক্যাশে সেভ করা
+        const cache = await caches.open('shared-queue');
+        await cache.put('pending-share', new Response(JSON.stringify({
+          title, text, url: urlStr, timestamp: Date.now()
+        })));
+        
+        if (files.length > 0) {
+          for(let i=0; i<files.length; i++) {
+            await cache.put(`pending-file-${i}`, new Response(files[i]));
+          }
+        }
+
+        // ড্যাশবোর্ডে রিডাইরেক্ট করা
+        return Response.redirect('./dashboard.html?process_share=true', 303);
+      })()
+    );
     return;
   }
   

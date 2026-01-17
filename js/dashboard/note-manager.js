@@ -257,7 +257,7 @@ function updateSelectionUI() {
 // ==================================================
 // ২. নোট সেভ, টুলবার এবং অডিও (আগের মতোই)
 // ==================================================
-export function setupNoteSaving(user) {
+export async function setupNoteSaving(user) {
     const saveBtn = document.getElementById('saveBtn');
     const noteInput = document.getElementById('noteInput');
     const fileInput = document.getElementById('fileInput');
@@ -304,6 +304,9 @@ export function setupNoteSaving(user) {
     }
 
     handleSharedContent(); // ফাংশনটি কল করুন
+
+    // 🔥 Background Share Processing
+    await processPendingShares(user);
 
     // 🔥 AI বাটন এবং টুলবার (আপডেটেড)
     // যদি আগে থেকে বার না থাকে তবেই অ্যাড করবে
@@ -470,10 +473,25 @@ export function setupNoteSaving(user) {
     if(triggerFileBtn) triggerFileBtn.onclick = () => fileInput.click();
     if(fileInput) {
         fileInput.onchange = (e) => {
-            if(e.target.files[0]) {
-                const r = new FileReader();
-                r.onload = (ev) => { imagePreview.src = ev.target.result; previewContainer.style.display = 'block'; };
-                r.readAsDataURL(e.target.files[0]);
+            const files = Array.from(e.target.files);
+            previewContainer.innerHTML = ""; // আগের প্রিভিউ ক্লিয়ার করো
+            
+            if (files.length > 0) {
+                previewContainer.style.display = 'flex';
+                files.forEach((file, index) => {
+                    const reader = new FileReader();
+                    reader.onload = (ev) => {
+                        const div = document.createElement('div');
+                        div.className = 'preview-wrapper';
+                        div.innerHTML = `
+                            <img src="${ev.target.result}">
+                            <button class="remove-img-small" data-index="${index}">×</button>
+                        `;
+                        previewContainer.appendChild(div);
+                    };
+                    reader.readAsDataURL(file);
+                });
+                saveBtn.innerText = `Save ${files.length} Images`;
             }
         };
     }
@@ -496,54 +514,74 @@ export function setupNoteSaving(user) {
     if(removeAudioBtn) removeAudioBtn.onclick = clearFileInput;
 
     saveBtn.addEventListener('click', async () => {
-        const rawText = noteInput.value;
-        // window.sharedFile চেক করুন যদি সাধারণ ফাইল ইনপুট খালি থাকে
-        const file = fileInput.files[0] || window.sharedFile;
+        const rawText = noteInput.value.trim();
+        const files = Array.from(fileInput.files);
         const targetFolder = document.getElementById('folderSelect')?.value || "General";
-        const selectedColor = "#ffffff"; // ডিফল্ট সাদা রং
+        const selectedColor = "#ffffff";
 
-        if (!rawText && !file && !androidSharedImage && !audioBlob) return showToast("⚠️ Empty note!", "error");
+        if (!rawText && files.length === 0 && !androidSharedImage && !audioBlob) return showToast("⚠️ Empty note!", "error");
 
         saveBtn.disabled = true; saveBtn.innerText = "Processing...";
         if(statusText) statusText.style.display = 'block';
         
         try {
             const text = Utils.normalizeUrl(rawText);
-            let fileUrl = null;
-            let type = 'text';
-            let linkMeta = {};
-
-            if (audioBlob) {
-                saveBtn.innerText = "Uploading Audio...";
-                const data = await DBService.uploadToCloudinary(audioBlob);
-                if(data.secure_url) { fileUrl = data.secure_url; type = 'audio'; } 
-                else throw new Error("Audio upload failed");
-            }
-            else if (file || androidSharedImage) {
-                saveBtn.innerText = "Uploading Image...";
-                const data = await DBService.uploadToCloudinary(file || androidSharedImage);
-                if(data.secure_url) { fileUrl = data.secure_url; type = 'image'; } 
-                else throw new Error("Image upload failed");
-            } 
-            else if (Utils.isValidURL(text)) {
-                type = 'link';
-                // ইন্সটাগ্রাম এবং ফেসবুকের জন্য ফেচিং এলাউ করা হলো
-                saveBtn.innerText = "🤖 AI Fetching...";
-                try {
-                    linkMeta = await Utils.getLinkPreviewData(text);
-                } catch (e) {
-                    console.log("Preview failed, saving as simple link");
+            const isUrl = Utils.isValidURL(text);
+            
+            // যদি একাধিক ইমেজ থাকে
+            if (files.length > 1) {
+                for (let i = 0; i < files.length; i++) {
+                    saveBtn.innerText = `Uploading ${i + 1}/${files.length}...`;
+                    
+                    const uploadData = await DBService.uploadToCloudinary(files[i]);
+                    
+                    if (uploadData.secure_url) {
+                        await DBService.addNoteToDB(user.uid, {
+                            text: i === 0 ? rawText : "", // প্রথম ইমেজের সাথে টেক্সট
+                            fileUrl: uploadData.secure_url,
+                            type: 'image',
+                            color: selectedColor,
+                            folder: targetFolder,
+                            tags: [],
+                            status: 'active',
+                            isPinned: false
+                        });
+                    }
                 }
+            } else {
+                // সিঙ্গেল ইমেজ বা অন্য কনটেন্ট
+                let fileUrl = null;
+                let type = 'text';
+                let linkMeta = {};
+
+                if (isUrl) {
+                    type = 'link';
+                    saveBtn.innerText = "🤖 AI Fetching...";
+                    try {
+                        linkMeta = await Utils.getLinkPreviewData(text);
+                    } catch (e) {
+                        console.log("Preview failed, saving as simple link");
+                    }
+                } else if (audioBlob) {
+                    saveBtn.innerText = "Uploading Audio...";
+                    const data = await DBService.uploadToCloudinary(audioBlob);
+                    if(data.secure_url) { fileUrl = data.secure_url; type = 'audio'; } 
+                    else throw new Error("Audio upload failed");
+                } else if (files[0] || androidSharedImage) {
+                    saveBtn.innerText = "Uploading Image...";
+                    const data = await DBService.uploadToCloudinary(files[0] || androidSharedImage);
+                    if(data.secure_url) { fileUrl = data.secure_url; type = 'image'; } 
+                    else throw new Error("Image upload failed");
+                }
+
+                const autoTags = Utils.generateAutoTags(rawText, linkMeta);
+
+                saveBtn.innerText = "Saving...";
+                await DBService.addNoteToDB(user.uid, {
+                    text, fileUrl, type, color: selectedColor, folder: targetFolder, 
+                    tags: autoTags, status: 'active', isPinned: false, ...linkMeta
+                });
             }
-
-            // 🔥 অটো ট্যাগ জেনারেট করা
-            const autoTags = Utils.generateAutoTags(rawText, linkMeta);
-
-            saveBtn.innerText = "Saving...";
-            await DBService.addNoteToDB(user.uid, {
-                text, fileUrl, type, color: selectedColor, folder: targetFolder, 
-                tags: autoTags, status: 'active', isPinned: false, ...linkMeta
-            });
 
             noteInput.value = ""; clearFileInput();
             document.querySelector('.filter-btn[data-filter="all"]')?.click();
@@ -554,4 +592,82 @@ export function setupNoteSaving(user) {
             if(statusText) statusText.style.display = 'none';
         }
     });
+}
+
+// 🔥 Background Share Processing Functions
+async function processPendingShares(user) {
+    const urlParams = new URLSearchParams(window.location.search);
+    if (!urlParams.has('process_share')) return;
+
+    try {
+        const cache = await caches.open('shared-queue');
+        const dataRes = await cache.match('pending-share');
+        if (!dataRes) return;
+
+        const sharedData = await dataRes.json();
+        showToast("🚀 Background upload started...", "info");
+
+        // ১. টেক্সট/লিঙ্ক প্রসেস করা
+        let rawText = `${sharedData.title || ''}\n${sharedData.text || ''}\n${sharedData.url || ''}`.trim();
+        
+        // ২. ফাইলগুলো চেক করা
+        let files = [];
+        for (let i = 0; i < 10; i++) {
+            const fileRes = await cache.match(`pending-file-${i}`);
+            if (fileRes) files.push(await fileRes.blob());
+            else break;
+        }
+
+        // ৩. ব্যাকগ্রাউন্ডে আপলোড শুরু
+        uploadInBackground(user, rawText, files);
+
+        // ৪. কিউ ক্লিয়ার করা এবং URL ক্লিন করা
+        await caches.delete('shared-queue');
+        window.history.replaceState({}, document.title, "dashboard.html");
+
+    } catch (e) {
+        console.error("Share processing failed", e);
+    }
+}
+
+async function uploadInBackground(user, text, files) {
+    try {
+        if (files.length === 0) {
+            // শুধু টেক্সট সেভ
+            const normalized = Utils.normalizeUrl(text);
+            const isUrl = Utils.isValidURL(normalized);
+            let type = isUrl ? 'link' : 'text';
+            let meta = {};
+            
+            if (isUrl) {
+                try {
+                    meta = await Utils.getLinkPreviewData(normalized);
+                } catch (e) {
+                    console.log("Preview failed");
+                }
+            }
+            
+            await DBService.addNoteToDB(user.uid, {
+                text: normalized, type, status: 'active', isPinned: false, ...meta
+            });
+        } else {
+            // একাধিক ফাইল আপলোড
+            for (let i = 0; i < files.length; i++) {
+                const data = await DBService.uploadToCloudinary(files[i]);
+                await DBService.addNoteToDB(user.uid, {
+                    text: i === 0 ? text : "", // শুধু প্রথম ইমেজের সাথে টেক্সট যাবে
+                    fileUrl: data.secure_url, 
+                    type: 'image', 
+                    status: 'active',
+                    folder: 'General'
+                });
+            }
+        }
+        showToast("✅ Background upload complete!", "success");
+        // নোট রিফ্রেশ
+        document.querySelector('.filter-btn[data-filter="all"]')?.click();
+    } catch (err) {
+        showToast("❌ Background upload failed!", "error");
+        console.error("Background upload error:", err);
+    }
 }
