@@ -317,6 +317,7 @@ export function setupNoteSaving(user) {
                     <div class="ai-dropdown-wrapper">
                         <button id="btn-ai" class="ai-compact-btn">🪄 AI Tools</button>
                         <div id="ai-menu" class="ai-menu-popup" style="display:none;">
+                            <div class="ai-option" data-task="write">✍️ Write/Draft</div>
                             <div class="ai-option" data-task="grammar">✨ Fix Grammar</div>
                             <div class="ai-option" data-task="summary">📝 Summarize</div>
                             <div class="ai-option" data-task="tags">🏷️ Generate Tags</div>
@@ -399,6 +400,8 @@ export function setupNoteSaving(user) {
                     
                     if(task === 'tags') {
                         noteInput.value = text + "\n\n" + result;
+                    } else if(task === 'write') {
+                        noteInput.value = result;
                     } else {
                         // For grammar, replace text. For summary, append.
                         if(task === 'grammar') noteInput.value = result;
