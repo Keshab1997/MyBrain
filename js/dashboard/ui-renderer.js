@@ -117,7 +117,25 @@ export function createNoteCardElement(docSnap, isTrashView, callbacks) {
         }
         contentHTML += `<div style="text-align:right; margin-top:5px;"><a href="${data.text}" target="_blank" style="font-size:11px; color:#2563eb; text-decoration:none; font-weight:bold;">🔗 Open Original Link</a></div>`;
     } else if (data.type === 'link') {
-        contentHTML += `<a href="${data.text}" target="_blank" style="text-decoration:none; color:inherit; display:block; border:1px solid rgba(0,0,0,0.1); border-radius:8px; overflow:hidden; background: rgba(255,255,255,0.6);">${data.image ? `<div style="height:140px; background-image: url('${data.image}'); background-size: cover; background-position: center;"></div>` : ''}<div style="padding:10px;"><h4 style="margin:0 0 5px 0; font-size:14px; color:#333;">${data.title || data.text}</h4><div style="font-size:11px; color:#666;">🔗 ${data.domain || 'Link'}</div></div></a>`;
+        const linkCard = document.createElement('a');
+        linkCard.href = data.text;
+        linkCard.style.cssText = "text-decoration:none; color:inherit; display:block; border:1px solid rgba(0,0,0,0.1); border-radius:8px; overflow:hidden; background: rgba(255,255,255,0.6);";
+        
+        // ইন-অ্যাপ ব্রাউজার ইভেন্ট যোগ করা
+        linkCard.addEventListener('click', (e) => {
+            const url = data.text;
+            // যদি এটি ইউটিউব/ফেসবুক/ইনস্টাগ্রাম না হয়, তবে ইন-অ্যাপ ব্রাউজারে খোলো
+            if (!url.includes('youtube.com') && !url.includes('facebook.com') && !url.includes('instagram.com')) {
+                e.preventDefault();
+                import('./browser-modal.js').then(module => {
+                    module.openInAppBrowser(url);
+                });
+            }
+        });
+        
+        linkCard.innerHTML = `${data.image ? `<div style="height:140px; background-image: url('${data.image}'); background-size: cover; background-position: center;"></div>` : ''}<div style="padding:10px;"><h4 style="margin:0 0 5px 0; font-size:14px; color:#333;">${data.title || data.text}</h4><div style="font-size:11px; color:#666;">🔗 ${data.domain || 'Link'}</div></div>`;
+        
+        contentHTML += linkCard.outerHTML;
     } else {
         contentHTML += generateTextHTML(data.text || '', id);
     }
