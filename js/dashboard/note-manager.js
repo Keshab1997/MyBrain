@@ -5,7 +5,7 @@ import * as UI from "./ui-renderer.js";
 import * as Utils from "../core/utils.js";
 import { openContextMenu, openReadModal } from "./menu-manager.js";
 import { askAI } from "./ai-service.js";
-import { showToast } from "../ui-shared.js";
+import { showToast, updateSyncStatus } from "../ui-shared.js";
 import { localDB } from "../core/db-local.js";
 
 // নোটিফিকেশন হেল্পার ফাংশন
@@ -43,6 +43,9 @@ export async function loadNotes(uid, filterType = 'All', filterValue = null) {
     if (cachedNotes.length > 0 && filterType === 'All') {
         renderNotesToUI(cachedNotes, contentGrid, filterType, uid);
     }
+
+    // অফলাইন সিঙ্ক চেষ্টা করা
+    attemptSync();
     const notesRef = collection(db, "notes");
     let q;
 
@@ -96,70 +99,82 @@ export async function loadNotes(uid, filterType = 'All', filterValue = null) {
 
 // রেন্ডারিং লজিক আলাদা ফাংশনে নিয়ে আসা (কোড ক্লিন রাখার জন্য)
 function renderNotesToUI(notes, container, filterType, uid) {
-    container.innerHTML = "";
+    const existingIds = new Set(Array.from(container.querySelectorAll('.note-card')).map(c => c.getAttribute('data-id')));
+    const newIds = new Set(notes.map(n => n.id));
+
+    // ১. যেগুলো আর নেই সেগুলো রিমুভ করুন
+    existingIds.forEach(id => {
+        if (!newIds.has(id)) {
+            container.querySelector(`[data-id="${id}"]`)?.remove();
+        }
+    });
+
     selectedNoteIds.clear();
     updateSelectionUI();
 
     // ট্র্যাশ হেডার
     if (filterType === 'trash') {
-        const count = notes.length;
-        const trashHeader = document.createElement('div');
-        trashHeader.style.cssText = "width:100%; display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; padding:10px; background:#fff0f0; border-radius:8px; border:1px solid #ffcdd2; grid-column: 1 / -1;";
-        
-        trashHeader.innerHTML = `
-            <span style="color:#d32f2f; font-weight:bold;">🗑️ Trash (${count} items)</span>
-            ${count > 0 ? `<button id="emptyTrashBtn" style="background:#d32f2f; color:white; border:none; padding:6px 12px; border-radius:4px; cursor:pointer; font-size:13px;">Empty Trash</button>` : ''}
-        `;
-        
-        const warning = document.createElement('p');
-        warning.style.cssText = "width:100%; text-align:center; font-size:11px; color:#888; margin-bottom:15px; grid-column: 1 / -1;";
-        warning.innerText = "Items in trash are automatically deleted after 7 days.";
-        
-        container.appendChild(trashHeader);
-        container.appendChild(warning);
+        if (!container.querySelector('.trash-header')) {
+            const count = notes.length;
+            const trashHeader = document.createElement('div');
+            trashHeader.className = 'trash-header';
+            trashHeader.style.cssText = "width:100%; display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; padding:10px; background:#fff0f0; border-radius:8px; border:1px solid #ffcdd2; grid-column: 1 / -1;";
+            
+            trashHeader.innerHTML = `
+                <span style="color:#d32f2f; font-weight:bold;">🗑️ Trash (${count} items)</span>
+                ${count > 0 ? `<button id="emptyTrashBtn" style="background:#d32f2f; color:white; border:none; padding:6px 12px; border-radius:4px; cursor:pointer; font-size:13px;">Empty Trash</button>` : ''}
+            `;
+            container.prepend(trashHeader);
 
-        setTimeout(() => {
-            const emptyBtn = document.getElementById('emptyTrashBtn');
-            if(emptyBtn) {
-                emptyBtn.onclick = async () => {
-                    if(confirm("Delete ALL items permanently?")) await DBService.emptyTrashDB(uid);
-                };
-            }
-        }, 0);
+            setTimeout(() => {
+                const emptyBtn = document.getElementById('emptyTrashBtn');
+                if(emptyBtn) {
+                    emptyBtn.onclick = async () => {
+                        if(confirm("Delete ALL items permanently?")) await DBService.emptyTrashDB(uid);
+                    };
+                }
+            }, 0);
+        }
     }
 
-    if(notes.length === 0) {
-        let msg = filterType === 'trash' ? "Trash is empty 😌" : "No notes found.";
+    // ২. নতুন নোটগুলো যোগ করুন
+    notes.forEach((noteData, index) => {
+        if (filterType !== 'trash' && noteData.isPinned) return;
+        
+        if (!existingIds.has(noteData.id)) {
+            const mockDocSnap = {
+                id: noteData.id,
+                data: () => noteData
+            };
+
+            const card = UI.createNoteCardElement(mockDocSnap, filterType === 'trash', {
+                onRestore: DBService.restoreNoteDB,
+                onDeleteForever: (id) => confirm("Permanently delete?") && DBService.deleteNoteForeverDB(id),
+                onContextMenu: openContextMenu,
+                onRead: openReadModal,
+                onSelect: (id, isSelected) => {
+                    if(isSelected) selectedNoteIds.add(id);
+                    else selectedNoteIds.delete(id);
+                    updateSelectionUI();
+                }
+            });
+            
+            if (index === 0) container.prepend(card);
+            else container.appendChild(card);
+        }
+    });
+
+    // যদি একদমই কোনো নোট না থাকে তবেই মেসেজ দেখান
+    if (notes.length === 0 && !container.querySelector('.empty-message')) {
+        const msg = filterType === 'trash' ? "Trash is empty 😌" : "No notes found.";
         const p = document.createElement('p');
+        p.className = 'empty-message';
         p.style.cssText = "text-align:center; color:#999; margin-top:20px; width:100%; grid-column: 1 / -1;";
         p.innerText = msg;
         container.appendChild(p);
-        return;
+    } else if (notes.length > 0) {
+        container.querySelector('.empty-message')?.remove();
     }
-
-    notes.forEach((noteData) => {
-        // পিন করা নোট এবং ট্র্যাশ ভিউ চেক
-        if (filterType !== 'trash' && noteData.isPinned) return;
-
-        // Mock docSnap object for UI compatibility
-        const mockDocSnap = {
-            id: noteData.id,
-            data: () => noteData
-        };
-
-        const card = UI.createNoteCardElement(mockDocSnap, filterType === 'trash', {
-            onRestore: DBService.restoreNoteDB,
-            onDeleteForever: (id) => confirm("Permanently delete?") && DBService.deleteNoteForeverDB(id),
-            onContextMenu: openContextMenu,
-            onRead: openReadModal,
-            onSelect: (id, isSelected) => {
-                if(isSelected) selectedNoteIds.add(id);
-                else selectedNoteIds.delete(id);
-                updateSelectionUI();
-            }
-        });
-        container.appendChild(card);
-    });
 }
 
 function loadPinnedNotes(uid) {
@@ -535,80 +550,36 @@ export async function setupNoteSaving(user) {
         const rawText = noteInput.value.trim();
         const files = Array.from(fileInput.files);
         const targetFolder = document.getElementById('folderSelect')?.value || "General";
-        const selectedColor = "#ffffff";
+        const tempId = "temp_" + Date.now(); // অফলাইন আইডি
 
         if (!rawText && files.length === 0 && !androidSharedImage && !audioBlob) return showToast("⚠️ Empty note!", "error");
 
-        saveBtn.disabled = true; saveBtn.innerText = "Processing...";
-        if(statusText) statusText.style.display = 'block';
+        const newNote = {
+            id: tempId,
+            text: rawText,
+            status: 'active',
+            timestamp: { seconds: Math.floor(Date.now()/1000) },
+            uid: user.uid,
+            folder: targetFolder,
+            tags: [],
+            isPinned: false,
+            type: 'text'
+        };
+
+        // ১. ইনস্ট্যান্ট লোকাল সেভ (UI-তে সাথে সাথে দেখাবে)
+        const existingNotes = await localDB.getAllNotes();
+        await localDB.saveNotes([newNote, ...existingNotes]);
+        renderNotesToUI(await localDB.getAllNotes(), document.getElementById('content-grid'), 'All', user.uid);
         
-        try {
-            const text = Utils.normalizeUrl(rawText);
-            const isUrl = Utils.isValidURL(text);
-            
-            // যদি একাধিক ইমেজ থাকে
-            if (files.length > 1) {
-                for (let i = 0; i < files.length; i++) {
-                    saveBtn.innerText = `Uploading ${i + 1}/${files.length}...`;
-                    
-                    const uploadData = await DBService.uploadToCloudinary(files[i]);
-                    
-                    if (uploadData.secure_url) {
-                        await DBService.addNoteToDB(user.uid, {
-                            text: i === 0 ? rawText : "", // প্রথম ইমেজের সাথে টেক্সট
-                            fileUrl: uploadData.secure_url,
-                            type: 'image',
-                            color: selectedColor,
-                            folder: targetFolder,
-                            tags: [],
-                            status: 'active',
-                            isPinned: false
-                        });
-                    }
-                }
-            } else {
-                // সিঙ্গেল ইমেজ বা অন্য কনটেন্ট
-                let fileUrl = null;
-                let type = 'text';
-                let linkMeta = {};
+        // ২. সিঙ্ক কিউতে যোগ করা
+        await localDB.addToSyncQueue({ type: 'ADD', data: newNote });
+        
+        noteInput.value = "";
+        clearFileInput();
+        showToast("✅ Note saved locally!");
 
-                if (isUrl) {
-                    type = 'link';
-                    saveBtn.innerText = "🤖 AI Fetching...";
-                    try {
-                        linkMeta = await Utils.getLinkPreviewData(text);
-                    } catch (e) {
-                        console.log("Preview failed, saving as simple link");
-                    }
-                } else if (audioBlob) {
-                    saveBtn.innerText = "Uploading Audio...";
-                    const data = await DBService.uploadToCloudinary(audioBlob);
-                    if(data.secure_url) { fileUrl = data.secure_url; type = 'audio'; } 
-                    else throw new Error("Audio upload failed");
-                } else if (files[0] || androidSharedImage) {
-                    saveBtn.innerText = "Uploading Image...";
-                    const data = await DBService.uploadToCloudinary(files[0] || androidSharedImage);
-                    if(data.secure_url) { fileUrl = data.secure_url; type = 'image'; } 
-                    else throw new Error("Image upload failed");
-                }
-
-                const autoTags = Utils.generateAutoTags(rawText, linkMeta);
-
-                saveBtn.innerText = "Saving...";
-                await DBService.addNoteToDB(user.uid, {
-                    text, fileUrl, type, color: selectedColor, folder: targetFolder, 
-                    tags: autoTags, status: 'active', isPinned: false, ...linkMeta
-                });
-            }
-
-            noteInput.value = ""; clearFileInput();
-            document.querySelector('.filter-btn[data-filter="all"]')?.click();
-
-        } catch (e) { console.error("Save Error:", e); showToast("❌ Error: " + e.message, "error"); } 
-        finally { 
-            saveBtn.disabled = false; saveBtn.innerText = "Save to Brain"; 
-            if(statusText) statusText.style.display = 'none';
-        }
+        // ৩. ব্যাকগ্রাউন্ড সিঙ্ক ট্রিগার করা
+        attemptSync();
     });
 }
 
@@ -649,51 +620,94 @@ async function processPendingShares(user) {
 }
 
 async function uploadInBackground(user, text, files) {
-    // ১. আপলোড শুরু হওয়ার নোটিফিকেশন
-    sendNotification("MindVault", "🚀 Background upload started...");
-
+    updateSyncStatus("Uploading in background...", true);
+    
     try {
         if (files.length === 0) {
-            // শুধু টেক্সট সেভ
             const normalized = Utils.normalizeUrl(text);
             const isUrl = Utils.isValidURL(normalized);
-            let type = isUrl ? 'link' : 'text';
-            let meta = {};
             
-            if (isUrl) {
-                try {
-                    meta = await Utils.getLinkPreviewData(normalized);
-                } catch (e) {
-                    console.log("Preview failed");
-                }
-            }
-            
-            await DBService.addNoteToDB(user.uid, {
-                text: normalized, type, status: 'active', isPinned: false, ...meta
+            // ১. সাথে সাথে নোট সেভ করুন (AI ছাড়া)
+            const docRef = await DBService.addNoteToDB(user.uid, {
+                text: normalized,
+                type: isUrl ? 'link' : 'text',
+                status: 'active',
+                isPinned: false
             });
+
+            // ২. যদি লিঙ্ক হয়, তবে ব্যাকগ্রাউন্ডে মেটাডাটা এবং AI ট্যাগ আপডেট করুন
+            if (isUrl) {
+                updateSyncStatus("Fetching link info...", true);
+                Utils.getLinkPreviewData(normalized).then(async (meta) => {
+                    // মেটাডাটা পাওয়ার পর আপডেট
+                    await DBService.updateNoteContentDB(docRef.id, normalized);
+                    
+                    // ৩. AI ট্যাগ জেনারেশন (সবশেষে)
+                    const tags = Utils.generateAutoTags(text, meta);
+                    await DBService.updateNoteTagsDB(docRef.id, tags);
+                    updateSyncStatus("Sync complete!");
+                    setTimeout(() => updateSyncStatus(null), 3000);
+                }).catch(() => {
+                    updateSyncStatus("Saved!");
+                    setTimeout(() => updateSyncStatus(null), 3000);
+                });
+            } else {
+                updateSyncStatus("Saved!");
+                setTimeout(() => updateSyncStatus(null), 3000);
+            }
         } else {
-            // একাধিক ফাইল আপলোড
+            // ফাইল আপলোড লজিক (আগের মতোই কিন্তু visual feedback সহ)
             for (let i = 0; i < files.length; i++) {
+                updateSyncStatus(`Uploading file ${i+1}/${files.length}...`, true);
                 const data = await DBService.uploadToCloudinary(files[i]);
                 await DBService.addNoteToDB(user.uid, {
-                    text: i === 0 ? text : "", // শুধু প্রথম ইমেজের সাথে টেক্সট যাবে
-                    fileUrl: data.secure_url, 
-                    type: 'image', 
+                    text: i === 0 ? text : "",
+                    fileUrl: data.secure_url,
+                    type: 'image',
                     status: 'active',
-                    folder: 'General'
+                    isPinned: false
                 });
             }
+            updateSyncStatus("All files saved!");
+            setTimeout(() => updateSyncStatus(null), 3000);
         }
         
-        // ২. আপলোড সফল হওয়ার নোটিফিকেশন
-        sendNotification("MindVault ✅", "Your notes have been saved successfully!");
-        showToast("✅ Background upload complete!", "success");
         // নোট রিফ্রেশ
         document.querySelector('.filter-btn[data-filter="all"]')?.click();
     } catch (err) {
-        // ৩. এরর নোটিফিকেশন
-        sendNotification("MindVault ❌", "Upload failed! Please check your connection.");
-        showToast("❌ Background upload failed!", "error");
+        updateSyncStatus("Upload failed!", false);
+        setTimeout(() => updateSyncStatus(null), 5000);
         console.error("Background upload error:", err);
     }
 }
+
+// 🔥 Sync Manager - অফলাইন কাজগুলো Firebase-এ সিঙ্ক করা
+export async function attemptSync() {
+    if (!navigator.onLine) return;
+
+    const queue = await localDB.getSyncQueue();
+    if (queue.length === 0) return;
+
+    updateSyncStatus("Syncing offline changes...", true);
+
+    for (const item of queue) {
+        try {
+            if (item.type === 'ADD') {
+                const { id, ...firebaseData } = item.data;
+                await DBService.addNoteToDB(firebaseData.uid, firebaseData);
+            } else if (item.type === 'DELETE') {
+                await DBService.moveToTrashDB(item.noteId);
+            }
+            
+            await localDB.removeFromSyncQueue(item.tempId);
+        } catch (err) {
+            console.error("Sync failed for item:", item, err);
+        }
+    }
+    
+    updateSyncStatus("All changes synced!");
+    setTimeout(() => updateSyncStatus(null), 3000);
+}
+
+// ইন্টারনেট ফিরে এলে অটো সিঙ্ক
+window.addEventListener('online', attemptSync);

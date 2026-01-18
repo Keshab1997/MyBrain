@@ -20,6 +20,27 @@ export function showToast(message, type = 'success') {
     }, 3000);
 }
 
+export function updateSyncStatus(message, isProcessing = false) {
+    let statusEl = document.getElementById('global-sync-status');
+    if (!statusEl) {
+        statusEl = document.createElement('div');
+        statusEl.id = 'global-sync-status';
+        statusEl.style.cssText = `
+            position: fixed; bottom: 80px; right: 20px; background: var(--bg-card);
+            padding: 8px 15px; border-radius: 50px; font-size: 12px; font-weight: 600;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1); display: flex; align-items: center;
+            gap: 8px; z-index: 9999; border: 1px solid var(--border-color);
+        `;
+        document.body.appendChild(statusEl);
+    }
+    
+    statusEl.style.display = message ? 'flex' : 'none';
+    statusEl.innerHTML = `
+        ${isProcessing ? '<div class="sync-spinner"></div>' : '✅'}
+        <span>${message}</span>
+    `;
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     
     // ১. ফুটার (Footer) সেটআপ

@@ -5,10 +5,14 @@ export async function askAI(taskType, text) {
         throw new Error("লেখাটি খুবই ছোট! অন্তত ৫টি অক্ষর লিখুন।");
     }
 
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 8000); // ৮ সেকেন্ড টাইমআউট
+
     try {
         // ১. প্রথমে VQD Token সংগ্রহ করা (এটি ছাড়া DuckDuckGo কাজ করবে না)
         const statusRes = await fetch('https://duckduckgo.com/duckchat/v1/status', {
-            headers: { 'x-vqd-accept': '1' }
+            headers: { 'x-vqd-accept': '1' },
+            signal: controller.signal
         });
         const vqd = statusRes.headers.get('x-vqd-token');
 
@@ -17,6 +21,7 @@ export async function askAI(taskType, text) {
         // ২. AI-এর কাছে রিকোয়েস্ট পাঠানো
         const response = await fetch('https://duckduckgo.com/duckchat/v1/chat', {
             method: 'POST',
+            signal: controller.signal,
             headers: {
                 'Content-Type': 'application/json',
                 'x-vqd-token': vqd
@@ -27,6 +32,7 @@ export async function askAI(taskType, text) {
             })
         });
 
+        clearTimeout(timeoutId);
         if (!response.ok) throw new Error("AI Server Error");
 
         // ৩. রেসপন্স প্রসেস করা (এটি Stream আকারে আসে, তাই টেক্সট বের করতে হবে)
@@ -50,8 +56,11 @@ export async function askAI(taskType, text) {
         return fullMessage || processWithFallback(taskType, text);
 
     } catch (error) {
+        clearTimeout(timeoutId);
+        if (error.name === 'AbortError') {
+            console.warn("AI timed out, using fallback.");
+        }
         console.error('AI Error:', error);
-        // যদি অনলাইন AI ফেইল করে, তবে লোকাল লজিক দিয়ে কাজ চালাবে
         return processWithFallback(taskType, text);
     }
 }

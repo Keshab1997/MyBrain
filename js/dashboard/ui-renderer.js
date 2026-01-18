@@ -107,13 +107,13 @@ export function createNoteCardElement(docSnap, isTrashView, callbacks) {
         contentHTML += `<div style="margin-bottom:10px;"><audio controls style="width:100%; height:35px;"><source src="${data.fileUrl}" type="audio/mpeg"></audio></div>`;
         if(data.text) contentHTML += generateTextHTML(data.text, id);
     } else if (data.type === 'image' && (data.fileUrl || data.image)) {
-        contentHTML += `<img src="${data.fileUrl || data.image}" loading="lazy" style="width:100%; border-radius: 8px; display:block; margin-bottom:5px;">`;
+        contentHTML += `<img src="${data.fileUrl || data.image}" loading="eager" style="width:100%; min-height:200px; background:#f1f5f9; border-radius: 8px; display:block; margin-bottom:5px;">`;
         if(data.text) contentHTML += generateTextHTML(data.text, id);
     } else if (mediaEmbed) {
-        contentHTML += mediaEmbed;
+        contentHTML += `<div class="embed-container" style="min-height:300px; background:#000; border-radius:8px; overflow:hidden;">${mediaEmbed}</div>`;
         const autoCaption = (data.title && !data.title.includes("Instagram")) ? data.title : (data.description || "");
         if (autoCaption && autoCaption !== "Instagram Post") {
-            contentHTML += `<div class="insta-caption" style="font-size: 13px; color: var(--text-main); margin: 10px 0; line-height: 1.5; display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; padding: 10px; background: rgba(37, 99, 235, 0.05); border-left: 3px solid #2563eb; border-radius: 4px;">${autoCaption}</div>`;
+            contentHTML += `<div class="insta-caption" style="font-size: 13px; color: var(--text-main); margin: 10px 0; line-height: 1.5; max-height: 150px; overflow-y: auto; padding: 10px; background: rgba(37, 99, 235, 0.05); border-left: 3px solid #2563eb; border-radius: 4px;">${autoCaption}</div>`;
         }
         contentHTML += `<div style="text-align:right; margin-top:5px;"><a href="${data.text}" target="_blank" style="font-size:11px; color:#2563eb; text-decoration:none; font-weight:bold;">🔗 Open Original Link</a></div>`;
     } else if (data.type === 'link') {
@@ -305,19 +305,19 @@ export function createNoteCardElement(docSnap, isTrashView, callbacks) {
 
     selectCheckbox.addEventListener('change', (e) => {
         e.stopPropagation();
-        if(e.target.checked) {
-            card.classList.add('selected');
-            callbacks.onSelect(id, true);
-        } else {
-            card.classList.remove('selected');
-            callbacks.onSelect(id, false);
-        }
+        const isChecked = e.target.checked;
+        card.classList.toggle('selected', isChecked);
+        callbacks.onSelect(id, isChecked);
     });
 
+    // কার্ডের যেকোনো জায়গায় ক্লিক করলে সিলেক্ট হবে (যদি সিলেকশন মোড অন থাকে)
     card.addEventListener('click', (e) => {
-        if(document.body.classList.contains('selection-mode') && !e.target.closest('button') && !e.target.closest('a') && !e.target.closest('.task-checkbox') && !e.target.closest('select')) {
-            selectCheckbox.checked = !selectCheckbox.checked;
-            selectCheckbox.dispatchEvent(new Event('change'));
+        if(document.body.classList.contains('selection-mode')) {
+            // যদি ক্লিকটি বাটন বা লিঙ্কে না হয়
+            if (!e.target.closest('button') && !e.target.closest('a') && !e.target.closest('select')) {
+                selectCheckbox.checked = !selectCheckbox.checked;
+                selectCheckbox.dispatchEvent(new Event('change'));
+            }
         }
     });
 
@@ -364,11 +364,9 @@ function generateTextHTML(text, noteId) {
     if (text.length > charLimit) {
         const uniqueId = `note-content-${noteId}`;
         return `
-            <div id="${uniqueId}" class="note-text-container" style="max-height: 120px; overflow: hidden; position: relative;">
+            <div id="${uniqueId}" class="note-text-container" style="max-height: 150px; overflow-y: auto; position: relative; padding-right: 5px;">
                 <div class="note-text">${parsedText}</div>
-                <div class="fade-overlay"></div>
             </div>
-            <button class="read-more-btn" onclick="toggleReadMore('${uniqueId}', this)">Read More</button>
         `;
     }
     return `<div class="note-text">${parsedText}</div>`;

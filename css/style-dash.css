@@ -582,11 +582,24 @@ white-space: nowrap;
 /* ==================================================
 ৪. গ্রিড এবং কার্ড (Masonry Layout)
 ================================================== */
+/* স্ক্রল করার সময় যাতে কোনো ল্যাগ না হয় */
 .masonry-grid {
 column-count: 5; /* বড় স্ক্রিনে ৫ কলাম */
 column-gap: 20px;
 width: 100%;
 margin: 0 auto;
+scroll-behavior: smooth;
+-webkit-overflow-scrolling: touch;
+}
+
+/* আইফ্রেম লোড হওয়ার সময় কালো ব্যাকগ্রাউন্ড যাতে চোখে না লাগে */
+.embed-container {
+    position: relative;
+    background: #1a1a1a;
+}
+
+.embed-container iframe {
+    loading: eager !important; /* ফোর্সিং ইগার লোড */
 }
 
 @media (max-width: 1600px) { .masonry-grid { column-count: 4; } }
@@ -601,7 +614,7 @@ border-radius: 12px;
 padding: 15px;
 box-shadow: 0 2px 8px rgba(0,0,0,0.04);
 border: 1px solid rgba(0,0,0,0.03);
-transition: transform 0.2s, box-shadow 0.2s;
+transition: transform 0.2s cubic-bezier(0.2, 0, 0.2, 1);
 position: relative;
 overflow: hidden;
 display: inline-block;
@@ -609,6 +622,11 @@ width: 100%;
 margin-bottom: 20px;
 break-inside: avoid;
 vertical-align: top;
+
+/* ব্রাউজার অপটিমাইজেশন */
+will-change: transform, opacity;
+content-visibility: auto;
+contain-intrinsic-size: 1px 300px;
 }
 
 .note-card:hover {
@@ -950,4 +968,41 @@ body.dark-mode .fade-overlay {
     line-height: 1.5;
     background: transparent !important; /* Highlight.js এর ডিফল্ট ব্যাকগ্রাউন্ড সরানো */
     padding: 0 !important;
+}
+
+/* ডেসক্রিপশন এবং ক্যাপশন বক্সের স্ক্রোলবার স্টাইল */
+.insta-caption::-webkit-scrollbar,
+.note-text-container::-webkit-scrollbar {
+    width: 4px;
+}
+
+.insta-caption::-webkit-scrollbar-thumb,
+.note-text-container::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 10px;
+}
+
+.insta-caption::-webkit-scrollbar-track,
+.note-text-container::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+/* ডার্ক মোডের জন্য স্ক্রোলবার */
+body.dark-mode .insta-caption::-webkit-scrollbar-thumb,
+body.dark-mode .note-text-container::-webkit-scrollbar-thumb {
+    background: #475569;
+}
+
+/* সিঙ্ক স্ট্যাটাস স্পিনার */
+.sync-spinner {
+    width: 12px;
+    height: 12px;
+    border: 2px solid #2563eb;
+    border-top-color: transparent;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
 }
