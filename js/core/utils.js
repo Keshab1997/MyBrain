@@ -20,6 +20,14 @@ export async function getLinkPreviewData(url) {
         const json = await response.json(); 
         
         if (json.status === 'success') {
+            // 🔥 ফিক্স: যদি টাইটেল Cloudflare এর হয়, তবে তা বাদ দেওয়া
+            if (json.data.title && (json.data.title.includes("Attention Required") || json.data.title.includes("Cloudflare"))) {
+                return { 
+                    title: new URL(url).hostname, // শুধু ডোমেইন নাম দেখাবে
+                    description: "Preview unavailable due to security.",
+                    image: null 
+                };
+            }
             return json.data; // এখানে title, image, description এবং tags থাকে
         } else {
             return { title: url, image: null, description: null, tags: [] };
@@ -53,42 +61,57 @@ export function getUniversalEmbedHTML(text) {
     if (!text) return null;
     let url = text.trim();
 
-    // YouTube
-    const ytRegex = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/;
-    const ytMatch = url.match(ytRegex);
-    if (ytMatch) {
-        return `<div style="position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; border-radius: 8px; margin-bottom:10px; background: #000;">
-                <iframe src="https://www.youtube.com/embed/${ytMatch[1]}" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: 0;" allowfullscreen></iframe></div>`;
-    }
+    try {
+        // YouTube
+        const ytRegex = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/;
+        const ytMatch = url.match(ytRegex);
+        if (ytMatch) {
+            return `<div style="position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; border-radius: 8px; margin-bottom:10px; background: #000;">
+                    <iframe src="https://www.youtube.com/embed/${ytMatch[1]}" 
+                        style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: 0;" 
+                        loading="lazy" 
+                        referrerpolicy="no-referrer-when-downgrade" 
+                        sandbox="allow-scripts allow-same-origin allow-presentation" 
+                        allowfullscreen></iframe></div>`;
+        }
 
-    // Instagram Logic (UPDATED 🚀)
-    const instaRegex = /(?:https?:\/\/)?(?:www\.)?instagram\.com\/(p|reel|tv)\/([a-zA-Z0-9_-]+)/;
-    const instaMatch = url.match(instaRegex);
-    
-    if (instaMatch) {
-        const postType = instaMatch[1]; 
-        const postId = instaMatch[2];
-        const cleanUrl = `https://www.instagram.com/${postType}/${postId}`;
+        // 🔥 Instagram Logic (Loading Text Fix)
+        const instaRegex = /(?:https?:\/\/)?(?:www\.)?instagram\.com\/(p|reel|tv)\/([a-zA-Z0-9_-]+)/;
+        const instaMatch = url.match(instaRegex);
         
-        // 'captioned/' যোগ করা হয়েছে কারণ এটি বেশি স্ট্যাবল, কিন্তু আমরা CSS দিয়ে ক্যাপশন হাইড করবো
-        const embedUrl = `${cleanUrl}/embed/captioned/`; 
+        if (instaMatch) {
+            const postType = instaMatch[1]; 
+            const postId = instaMatch[2];
+            // 'captioned' বাদ দিয়ে ক্লিন 'embed' ব্যবহার করলে লোডিং টেক্সট কম আসে
+            const embedUrl = `https://www.instagram.com/${postType}/${postId}/embed/captioned/?cr=1&v=14&wp=540`; 
 
-        // Container height বাড়িয়ে ৪২০ করা হয়েছে যাতে প্লেয়ারটি ঠিকমতো ইনিশিয়ালাইজ হতে পারে
-        return `<div style="overflow: hidden; border-radius: 12px; border: 1px solid #dbdbdb; margin-bottom:10px; background: #000; height: 420px; position: relative;">
+            return `
+            <div style="position: relative; background: #ffffff; border-radius: 12px; border: 1px solid #dbdbdb; overflow: hidden; min-height: 450px; display: flex; align-items: center; justify-content: center;">
+                
+                <!-- ১. কাস্টম লোডার (ইনস্টাগ্রামের লোডিং টেক্সট এর বদলে এটি দেখাবে) -->
+                <div style="position: absolute; z-index: 1; color: #999; font-size: 12px; display: flex; flex-direction: column; align-items: center; gap: 5px;">
+                    <div class="sync-spinner" style="border-color: #ccc; border-top-color: #2563eb;"></div>
+                    <span>Loading Post...</span>
+                </div>
+
+                <!-- ২. আইফ্রেম (শুরুতে opacity 0 থাকবে, লোড হলে ভেসে উঠবে) -->
                 <iframe src="${embedUrl}" 
-                    style="width: 100%; height: 750px; border: 0; position: absolute; top: -50px; left: 0;" 
+                    style="width: 100%; height: 550px; border: 0; position: relative; z-index: 2; opacity: 0; transition: opacity 0.8s ease;" 
+                    onload="this.style.opacity='1'; this.previousElementSibling.style.display='none';"
                     frameborder="0" 
                     scrolling="no" 
                     allowtransparency="true" 
-                    allowfullscreen 
-                    referrerpolicy="strict-origin-when-cross-origin">
+                    allowfullscreen>
                 </iframe>
-                </div>`;
-    }
+                
+            </div>
+            <div style="text-align:center; padding: 5px;">
+                <a href="${url}" target="_blank" style="font-size:12px; color:#2563eb; text-decoration:none; font-weight:500;">View on Instagram ↗</a>
+            </div>`;
+        }
 
-    // Facebook
-    if (url.includes('facebook.com') || url.includes('fb.watch')) {
-        try {
+        // Facebook
+        if (url.includes('facebook.com') || url.includes('fb.watch')) {
             let cleanUrl = url.split('?')[0];
             cleanUrl = cleanUrl.replace('m.facebook.com', 'www.facebook.com');
             const encodedUrl = encodeURIComponent(cleanUrl);
@@ -97,19 +120,30 @@ export function getUniversalEmbedHTML(text) {
                 return `<div style="position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; border-radius: 8px; margin-bottom:10px;">
                         <iframe src="https://www.facebook.com/plugins/video.php?href=${encodedUrl}&show_text=false" 
                             style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: none;" 
-                            allowfullscreen="true" allow="autoplay; clipboard-write; encrypted-media; picture-in-picture; web-share"></iframe>
+                            loading="lazy" 
+                            referrerpolicy="no-referrer-when-downgrade" 
+                            sandbox="allow-scripts allow-same-origin allow-presentation" 
+                            allowfullscreen="true" 
+                            allow="autoplay; clipboard-write; encrypted-media; picture-in-picture; web-share"></iframe>
                         </div>`;
             }
             return `<div style="border: 1px solid #ddd; border-radius: 8px; overflow: hidden; background: #fff; margin-bottom: 10px;">
                     <iframe src="https://www.facebook.com/plugins/post.php?href=${encodedUrl}&show_text=true&width=500" 
                         width="100%" height="500" style="border:none; overflow:hidden" 
-                        scrolling="no" frameborder="0" allowfullscreen="true" 
+                        scrolling="no" frameborder="0" 
+                        loading="lazy" 
+                        referrerpolicy="no-referrer-when-downgrade" 
+                        sandbox="allow-scripts allow-same-origin allow-presentation" 
+                        allowfullscreen="true" 
                         allow="autoplay; clipboard-write; encrypted-media; picture-in-picture; web-share"></iframe>
                     </div>`;
-        } catch (e) { return null; }
+        }
+        
+        return null;
+    } catch (error) {
+        console.warn('Embed generation error:', error);
+        return null;
     }
-    
-    return null;
 }
 
 // ৭. Cloudinary Image Optimization

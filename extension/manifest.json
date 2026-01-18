@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "Save to MyBrain",
-  "version": "1.0",
-  "description": "Save current website link to MyBrain Dashboard",
+  "name": "Save to MindVault",
+  "version": "2.0",
+  "description": "Save websites and links directly to your MindVault Dashboard.",
   "permissions": ["activeTab"],
   "action": {
     "default_popup": "popup.html",

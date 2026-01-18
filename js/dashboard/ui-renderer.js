@@ -116,10 +116,34 @@ export function createNoteCardElement(docSnap, isTrashView, callbacks) {
         contentHTML += `<div style="margin-bottom:10px;"><audio controls style="width:100%; height:35px;"><source src="${data.fileUrl}" type="audio/mpeg"></audio></div>`;
         if(data.text) contentHTML += generateTextHTML(data.text, id);
     } else if (data.type === 'image' && (data.fileUrl || data.image)) {
-        contentHTML += `<img class="main-note-img" src="${data.fileUrl || data.image}" loading="eager">`;
+        // 🔥 CHANGE: loading="eager" কে loading="lazy" করা হয়েছে এবং decoding="async" যোগ করা হয়েছে
+        contentHTML += `<img class="main-note-img" src="${data.fileUrl || data.image}" loading="lazy" decoding="async" alt="Note Image">`;
         if(data.text) contentHTML += generateTextHTML(data.text, id);
     } else if (mediaEmbed) {
-        contentHTML += `<div class="embed-container" style="min-height:300px; background:#000; border-radius:8px; overflow:hidden;">${mediaEmbed}</div>`;
+        // 🔥 Error handling for iframe content to prevent console errors
+        const embedContainer = document.createElement('div');
+        embedContainer.className = 'embed-container';
+        embedContainer.style.cssText = 'min-height:300px; background:#000; border-radius:8px; overflow:hidden; position:relative;';
+        
+        try {
+            embedContainer.innerHTML = mediaEmbed;
+            // Add loading indicator
+            const loadingDiv = document.createElement('div');
+            loadingDiv.style.cssText = 'position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); color:#fff; font-size:14px;';
+            loadingDiv.textContent = 'Loading...';
+            embedContainer.appendChild(loadingDiv);
+            
+            // Remove loading after iframe loads
+            setTimeout(() => {
+                if (loadingDiv.parentNode) loadingDiv.remove();
+            }, 3000);
+        } catch (error) {
+            console.warn('Embed content error:', error);
+            embedContainer.innerHTML = '<div style="color:#fff; text-align:center; padding:50px;">Content unavailable</div>';
+        }
+        
+        contentHTML += embedContainer.outerHTML;
+        
         const autoCaption = (data.title && !data.title.includes("Instagram")) ? data.title : (data.description || "");
         if (autoCaption && autoCaption !== "Instagram Post") {
             contentHTML += `<div class="insta-caption" style="font-size: 13px; color: var(--text-main); margin: 10px 0; line-height: 1.5; max-height: 150px; overflow-y: auto; padding: 10px; background: rgba(37, 99, 235, 0.05); border-left: 3px solid #2563eb; border-radius: 4px;">${autoCaption}</div>`;
@@ -128,7 +152,7 @@ export function createNoteCardElement(docSnap, isTrashView, callbacks) {
     } else if (data.type === 'link') {
         const linkCard = document.createElement('a');
         linkCard.href = data.text;
-        linkCard.style.cssText = "text-decoration:none; color:inherit; display:block; border:1px solid rgba(0,0,0,0.1); border-radius:8px; overflow:hidden; background: rgba(255,255,255,0.6);";
+        linkCard.style.cssText = "text-decoration:none; color:inherit; display:block; border:1px solid rgba(0,0,0,0.1); border-radius:8px; overflow:hidden; background: rgba(255,255,255,0.6); transition: background 0.2s;";
         
         // ইন-অ্যাপ ব্রাউজার ইভেন্ট যোগ করা
         linkCard.addEventListener('click', (e) => {
@@ -142,12 +166,20 @@ export function createNoteCardElement(docSnap, isTrashView, callbacks) {
             }
         });
         
+        // 🔥 CACHE UI FIX: যদি টাইটেল ডাটাবেসে থাকে, সরাসরি দেখাও। না থাকলে URL দেখাও।
+        const displayTitle = data.title || data.text;
+        const displayDesc = data.description || "";
+        const displayImage = data.image || "";
+        const displayDomain = data.domain || "Open Link";
+
         linkCard.innerHTML = `
-            ${data.image ? `<div style="height:160px; background:url('${data.image}') center/cover no-repeat;"></div>` : ''}
+            ${displayImage ? `<div style="height:160px; background:url('${displayImage}') center/cover no-repeat;"></div>` : ''}
             <div style="padding:12px;">
-                <h4 style="margin:0 0 8px 0; font-size:15px; color:var(--text-main); line-height:1.4;">${data.title || data.text}</h4>
-                ${data.description ? `<p style="margin:0 0 10px 0; font-size:13px; color:var(--text-muted); line-height:1.5; display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical; overflow:hidden;">${data.description}</p>` : ''}
-                <div style="font-size:11px; color:var(--primary-color); font-weight:600;">🔗 ${data.domain || 'Open Link'}</div>
+                <h4 style="margin:0 0 8px 0; font-size:15px; color:var(--text-main); line-height:1.4; font-weight: 600;">${displayTitle}</h4>
+                ${displayDesc ? `<p style="margin:0 0 10px 0; font-size:13px; color:var(--text-muted); line-height:1.5; display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical; overflow:hidden;">${displayDesc}</p>` : ''}
+                <div style="font-size:11px; color:var(--primary-color); font-weight:600; display:flex; align-items:center; gap:5px;">
+                    🔗 ${displayDomain}
+                </div>
             </div>
         `;
         

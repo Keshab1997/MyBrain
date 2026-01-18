@@ -71,11 +71,27 @@ export async function batchDeleteNotesDB(ids, isPermanentDelete) {
 
 // Trash Management
 export async function emptyTrashDB(uid) {
-    const batch = writeBatch(db);
+    // ১. সব ট্র্যাশ নোট আনো
     const q = query(collection(db, "notes"), where("uid", "==", uid), where("status", "==", "trash"));
     const snapshot = await getDocs(q);
-    snapshot.forEach((doc) => batch.delete(doc.ref));
-    await batch.commit();
+
+    if (snapshot.empty) return;
+
+    // ২. ৪০০টি করে ভাগ করো (Firebase Limit)
+    const BATCH_SIZE = 400; // সেফটির জন্য ৪০০ রাখা হলো
+    const chunks = [];
+    const docs = snapshot.docs;
+
+    for (let i = 0; i < docs.length; i += BATCH_SIZE) {
+        chunks.push(docs.slice(i, i + BATCH_SIZE));
+    }
+
+    // ৩. লুপ চালিয়ে ডিলিট করো
+    for (const chunk of chunks) {
+        const batch = writeBatch(db);
+        chunk.forEach((doc) => batch.delete(doc.ref));
+        await batch.commit();
+    }
 }
 
 export async function cleanupOldTrashDB(uid) {
@@ -113,6 +129,18 @@ export async function deleteFolderDB(uid, folderId, folderName) {
 
 export async function updateNoteFolderDB(id, newFolder) {
     await updateDoc(doc(db, "notes", id), { folder: newFolder });
+}
+
+// 🔥 নতুন ফাংশন: মেটাডেটা পার্মানেন্টলি সেভ করার জন্য
+export async function updateNoteMetadataDB(id, metadata) {
+    const noteRef = doc(db, "notes", id);
+    await updateDoc(noteRef, {
+        title: metadata.title || "",
+        description: metadata.description || "",
+        image: metadata.image || "",
+        domain: metadata.domain || "",
+        // টাইমস্ট্যাম্প আপডেট করব না, যাতে নোটটি উপরে না চলে আসে
+    });
 }
 
 export async function updateNoteTagsDB(id, newTags) {

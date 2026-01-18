@@ -5,10 +5,15 @@ import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/
 console.log("🚀 Dashboard Main.js Loaded");
 
 // মডিউল ইমপোর্ট
-import { loadNotes, setupNoteSaving } from "./note-manager.js";
+import { loadNotes, setupNoteSaving, handleIncomingShare } from "./note-manager.js"; // handleIncomingShare ইমপোর্ট করুন
 import { setupFolders } from "./folder-manager.js";
 import { setupEventListeners } from "./event-manager.js";
 import { setupModals } from "./menu-manager.js";
+
+// 🔥 ডুপ্লিকেট রোধ করার জন্য ফ্ল্যাগ
+let hasProcessedShare = false;
+
+let isDashboardInitialized = false; // 🔥 ফ্ল্যাগ যোগ করা হয়েছে
 
 // অথেনটিকেশন চেকার
 onAuthStateChanged(auth, (user) => {
@@ -19,7 +24,11 @@ onAuthStateChanged(auth, (user) => {
         window.location.replace("index.html");
     } else {
         console.log("✅ Access Granted for:", user.email);
-        initDashboard(user);
+        // 🔥 যদি অলরেডি ইনিশিয়ালাইজ হয়ে থাকে, তবে আর কল হবে না
+        if (!isDashboardInitialized) {
+            initDashboard(user);
+            isDashboardInitialized = true;
+        }
     }
 });
 
@@ -64,20 +73,20 @@ function initDashboard(user) {
         console.error("Error initializing modules:", error);
     }
 
-    // ৩. শেয়ার্ড কনটেন্ট হ্যান্ডলার (Android & Web Share Target)
-    // URL থেকে 'text' বা 'note' প্যারামিটার চেক করা
-    const p = new URLSearchParams(window.location.search);
-    const sharedText = p.get('text') || p.get('note'); 
+    // 🔥🔥🔥 ডুপ্লিকেট ফিক্স এবং শেয়ার হ্যান্ডলিং 🔥🔥🔥
+    if (!hasProcessedShare) {
+        const p = new URLSearchParams(window.location.search);
+        const sharedText = p.get('text') || p.get('note');
+        const sharedTitle = p.get('title'); // এক্সটেনশন থেকে আসা টাইটেল
 
-    if (sharedText) {
-        const noteInput = document.getElementById('noteInput');
-        if (noteInput) {
-            // টেক্সট ডিকোড করে ইনপুটে বসানো
-            noteInput.value = decodeURIComponent(sharedText);
-            noteInput.focus(); // ইনপুটে ফোকাস করা
+        if (sharedText) {
+            hasProcessedShare = true; // ফ্ল্যাগ সেট করা হলো
             
-            // URL ক্লিন করা (যাতে পেজ রিফ্রেশ দিলে আবার টেক্সট না আসে)
+            // URL ক্লিন করে দেওয়া যাতে রিফ্রেশ দিলে আবার সেভ না হয়
             window.history.replaceState({}, document.title, "dashboard.html");
+
+            // সরাসরি নোট ম্যানেজারে পাঠানো
+            handleIncomingShare(user, sharedText, sharedTitle);
         }
     }
 }
