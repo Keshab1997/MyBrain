@@ -93,8 +93,8 @@ export async function loadNotes(uid, filterType = 'All', filterValue = null) {
 
         // 🔥 টাইমস্ট্যাম্প অনুযায়ী সর্ট করুন (Newest First)
         allNotes.sort((a, b) => {
-            const timeA = a.timestamp?.seconds || (typeof a.timestamp === 'number' ? a.timestamp : 0);
-            const timeB = b.timestamp?.seconds || (typeof b.timestamp === 'number' ? b.timestamp : 0);
+            const timeA = a.timestamp?.seconds || a.timestamp || 0;
+            const timeB = b.timestamp?.seconds || b.timestamp || 0;
             return timeB - timeA;
         });
 
@@ -113,82 +113,65 @@ export async function loadNotes(uid, filterType = 'All', filterValue = null) {
 
 // রেন্ডারিং লজিক আলাদা ফাংশনে নিয়ে আসা (কোড ক্লিন রাখার জন্য)
 function renderNotesToUI(notes, container, filterType, uid) {
-    const existingIds = new Set(Array.from(container.querySelectorAll('.note-card')).map(c => c.getAttribute('data-id')));
-    const newIds = new Set(notes.map(n => n.id));
-
-    // ১. যেগুলো আর নেই সেগুলো রিমুভ করুন
-    existingIds.forEach(id => {
-        if (!newIds.has(id)) {
-            container.querySelector(`[data-id="${id}"]`)?.remove();
-        }
-    });
-
+    // ১. গ্রিড ক্লিয়ার করুন যাতে নতুন করে ওপর থেকে সাজানো যায়
+    container.innerHTML = "";
     selectedNoteIds.clear();
     updateSelectionUI();
 
-    // ট্র্যাশ হেডার
+    // ২. ট্র্যাশ ভিউয়ের জন্য হেডার (যদি থাকে)
     if (filterType === 'trash') {
-        if (!container.querySelector('.trash-header')) {
-            const count = notes.length;
-            const trashHeader = document.createElement('div');
-            trashHeader.className = 'trash-header';
-            trashHeader.style.cssText = "width:100%; display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; padding:10px; background:#fff0f0; border-radius:8px; border:1px solid #ffcdd2; grid-column: 1 / -1;";
-            
-            trashHeader.innerHTML = `
-                <span style="color:#d32f2f; font-weight:bold;">🗑️ Trash (${count} items)</span>
-                ${count > 0 ? `<button id="emptyTrashBtn" style="background:#d32f2f; color:white; border:none; padding:6px 12px; border-radius:4px; cursor:pointer; font-size:13px;">Empty Trash</button>` : ''}
-            `;
-            container.prepend(trashHeader);
+        const count = notes.length;
+        const trashHeader = document.createElement('div');
+        trashHeader.style.cssText = "width:100%; display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; padding:10px; background:#fff0f0; border-radius:8px; border:1px solid #ffcdd2; grid-column: 1 / -1;";
+        
+        trashHeader.innerHTML = `
+            <span style="color:#d32f2f; font-weight:bold;">🗑️ Trash (${count} items)</span>
+            ${count > 0 ? `<button id="emptyTrashBtn" style="background:#d32f2f; color:white; border:none; padding:6px 12px; border-radius:4px; cursor:pointer; font-size:13px;">Empty Trash</button>` : ''}
+        `;
+        container.appendChild(trashHeader);
 
-            setTimeout(() => {
-                const emptyBtn = document.getElementById('emptyTrashBtn');
-                if(emptyBtn) {
-                    emptyBtn.onclick = async () => {
-                        if(confirm("Delete ALL items permanently?")) await DBService.emptyTrashDB(uid);
-                    };
-                }
-            }, 0);
-        }
+        setTimeout(() => {
+            const emptyBtn = document.getElementById('emptyTrashBtn');
+            if(emptyBtn) {
+                emptyBtn.onclick = async () => {
+                    if(confirm("Delete ALL items permanently?")) await DBService.emptyTrashDB(uid);
+                };
+            }
+        }, 0);
     }
 
-    // ২. নতুন নোটগুলো যোগ করুন
-    notes.forEach((noteData, index) => {
-        if (filterType !== 'trash' && noteData.isPinned) return;
-        
-        if (!existingIds.has(noteData.id)) {
-            const mockDocSnap = {
-                id: noteData.id,
-                data: () => noteData
-            };
-
-            const card = UI.createNoteCardElement(mockDocSnap, filterType === 'trash', {
-                onRestore: DBService.restoreNoteDB,
-                onDeleteForever: (id) => confirm("Permanently delete?") && DBService.deleteNoteForeverDB(id),
-                onContextMenu: openContextMenu,
-                onRead: openReadModal,
-                onSelect: (id, isSelected) => {
-                    if(isSelected) selectedNoteIds.add(id);
-                    else selectedNoteIds.delete(id);
-                    updateSelectionUI();
-                }
-            });
-            
-            if (index === 0) container.prepend(card);
-            else container.appendChild(card);
-        }
-    });
-
-    // যদি একদমই কোনো নোট না থাকে তবেই মেসেজ দেখান
-    if (notes.length === 0 && !container.querySelector('.empty-message')) {
+    if (notes.length === 0) {
         const msg = filterType === 'trash' ? "Trash is empty 😌" : "No notes found.";
         const p = document.createElement('p');
-        p.className = 'empty-message';
         p.style.cssText = "text-align:center; color:#999; margin-top:20px; width:100%; grid-column: 1 / -1;";
         p.innerText = msg;
         container.appendChild(p);
-    } else if (notes.length > 0) {
-        container.querySelector('.empty-message')?.remove();
+        return;
     }
+
+    // ৩. নোটগুলো লুপ চালিয়ে অ্যাপেন্ড করুন
+    notes.forEach((noteData) => {
+        if (filterType !== 'trash' && noteData.isPinned) return;
+        
+        const mockDocSnap = {
+            id: noteData.id,
+            data: () => noteData
+        };
+
+        const card = UI.createNoteCardElement(mockDocSnap, filterType === 'trash', {
+            onRestore: DBService.restoreNoteDB,
+            onDeleteForever: (id) => confirm("Permanently delete?") && DBService.deleteNoteForeverDB(id),
+            onContextMenu: openContextMenu,
+            onRead: openReadModal,
+            onSelect: (id, isSelected) => {
+                if(isSelected) selectedNoteIds.add(id);
+                else selectedNoteIds.delete(id);
+                updateSelectionUI();
+            }
+        });
+        
+        container.appendChild(card);
+    });
 }
 
 function loadPinnedNotes(uid) {
